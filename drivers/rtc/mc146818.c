@@ -192,6 +192,7 @@ static void mc146818_init(void)
 	/* Clear any pending interrupts */
 	mc146818_read8(RTC_CONFIG_C);
 }
+
 #endif /* CONFIG_CMD_DATE */
 
 #ifdef CONFIG_DM_RTC
@@ -305,3 +306,13 @@ void rtc_init(void)
 }
 
 #endif /* CONFIG_DM_RTC */
+
+void rtc_second_boundary(void)
+{
+	unsigned char sec;
+
+	while (mc146818_read8(RTC_CONFIG_A) & 0x80);
+
+	sec = mc146818_read8(RTC_SECONDS);
+	while (mc146818_read8(RTC_SECONDS) == sec);
+}
