@@ -21,6 +21,8 @@
 #include "malta.h"
 #include "superio.h"
 
+unsigned int malta_timer_hz = 250000000;
+
 enum core_card {
 	CORE_UNKNOWN,
 	CORE_LV,
@@ -244,6 +246,14 @@ static int read_eeprom(void)
 int misc_init_r(void)
 {
 	rtc_reset();
+
+	/* Approximate the timer frequency using the RTC */
+	write_c0_compare(~0);
+	rtc_second_boundary();
+	write_c0_count(0);
+	rtc_second_boundary();
+	malta_timer_hz = read_c0_count();
+	timer_init();
 
 	/* Read the MAC & serial from EEPROM */
 	if (!getenv("ethaddr") || !getenv("serial#"))
