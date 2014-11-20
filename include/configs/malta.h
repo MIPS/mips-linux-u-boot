@@ -92,6 +92,17 @@
 	(CONFIG_SYS_FLASH_BASE + (4 << 20) - CONFIG_ENV_SIZE)
 
 /*
+ * I2C/SMBUS
+ */
+#define CONFIG_SYS_I2C			1
+
+/*
+ * EEPROM
+ */
+#define CONFIG_SYS_I2C_EEPROM_ADDR	0x54
+#define CONFIG_SYS_I2C_EEPROM_ADDR_LEN	1
+
+/*
  * IDE/ATA
  */
 #define CONFIG_SYS_IDE_MAXBUS		1
@@ -105,6 +116,7 @@
  * Commands
  */
 #define CONFIG_CMD_DATE
+#define CONFIG_CMD_EEPROM
 #define CONFIG_CMD_IDE
 #define CONFIG_CMD_PCI
 

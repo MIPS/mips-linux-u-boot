@@ -177,9 +177,77 @@ int board_early_init_f(void)
 	return 0;
 }
 
+static int read_eeprom(void)
+{
+	uchar buf[256], ver, count, id, size;
+	unsigned i, sn_pos, pos = 0x200;
+	char sn[16];
+	int err;
+
+	err = eeprom_read(0x54, pos++, &ver, 1);
+	if (err)
+		return err;
+
+	if (ver != 1) {
+		printf("WARNING: EEPROM data version %u unsupported\n", ver);
+		return -1;
+	}
+
+	err = eeprom_read(0x54, pos++, &count, 1);
+	if (err)
+		return err;
+
+	while (count--) {
+		err = eeprom_read(0x54, pos++, &id, 1);
+		if (err)
+			return err;
+
+		err = eeprom_read(0x54, pos++, &size, 1);
+		if (err)
+			return err;
+
+		err = eeprom_read(0x54, pos, buf, size);
+		if (err)
+			return err;
+		pos += size;
+
+		switch (id) {
+		case 1:
+			/* MAC */
+			eth_setenv_enetaddr("ethaddr", buf);
+			break;
+
+		case 2:
+			/* Serial */
+			i = 0;
+			while (!buf[i] && (i < size))
+				i++;
+
+			snprintf(sn, sizeof(sn), "ERROR");
+			sn_pos = 0;
+			for (; i < size; i++)
+				sn_pos += snprintf(&sn[sn_pos],
+						   sizeof(sn) - sn_pos,
+						   "%x", buf[i]);
+
+			setenv("serial#", sn);
+			break;
+
+		default:
+			printf("WARNING: unrecognised EEPROM data ID %u\n", id);
+		}
+	}
+
+	return 0;
+}
+
 int misc_init_r(void)
 {
 	rtc_reset();
+
+	/* Read the MAC & serial from EEPROM */
+	if (!getenv("ethaddr") || !getenv("serial#"))
+		read_eeprom();
 
 	return 0;
 }
