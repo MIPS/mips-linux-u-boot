@@ -31,6 +31,7 @@ obj-$(CONFIG_SYS_I2C_MXC) += mxc_i2c.o
 obj-$(CONFIG_SYS_I2C_MXS) += mxs_i2c.o
 obj-$(CONFIG_SYS_I2C_OMAP24XX) += omap24xx_i2c.o
 obj-$(CONFIG_SYS_I2C_OMAP34XX) += omap24xx_i2c.o
+obj-$(CONFIG_SYS_I2C_PIIX4) += piix4_i2c.o
 obj-$(CONFIG_SYS_I2C_PPC4XX) += ppc4xx_i2c.o
 obj-$(CONFIG_SYS_I2C_RCAR) += rcar_i2c.o
 obj-$(CONFIG_SYS_I2C_ROCKCHIP) += rk_i2c.o

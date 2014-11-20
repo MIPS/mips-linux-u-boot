@@ -189,6 +189,13 @@ config TEGRA186_BPMP_I2C
 	  by the BPMP, and can only be accessed by the main CPU via IPC
 	  requests to the BPMP. This driver covers the latter case.
 
+config SYS_I2C_PIIX4
+	bool "Enable Intel PIIX4 I2C driver"
+	default y if MIPS && TARGET_MALTA
+	help
+	  Support the I2C/SMbus controller found in the Intel PIIX4 south
+	  bridge.
+
 source "drivers/i2c/muxes/Kconfig"
 
 endmenu
