@@ -444,21 +444,6 @@ static int pcnet_send(struct eth_device *dev, void *packet, int pkt_len)
 	flush_dcache_range((unsigned long)packet,
 			   (unsigned long)packet + pkt_len);
 
-	/* Wait for completion by testing the OWN bit */
-	for (i = 1000; i > 0; i--) {
-		status = readw(&entry->status);
-		if ((status & 0x8000) == 0)
-			break;
-		udelay(100);
-		PCNET_DEBUG2(".");
-	}
-	if (i <= 0) {
-		printf("%s: TIMEOUT: Tx%d failed (status = 0x%x)\n",
-		       dev->name, lp->cur_tx, status);
-		pkt_len = 0;
-		goto failure;
-	}
-
 	/*
 	 * Setup Tx ring. Caution: the write order is important here,
 	 * set the status with the "ownership" bits last.
@@ -472,7 +457,20 @@ static int pcnet_send(struct eth_device *dev, void *packet, int pkt_len)
 	/* Trigger an immediate send poll. */
 	pcnet_write_csr(dev, 0, 0x0008);
 
-      failure:
+	/* Wait for completion by testing the OWN bit */
+	for (i = 1000; i > 0; i--) {
+		status = readw(&entry->status);
+		if ((status & 0x8000) == 0)
+			break;
+		udelay(100);
+		PCNET_DEBUG2(".");
+	}
+	if (i <= 0) {
+		printf("%s: TIMEOUT: Tx%d failed (status = 0x%x)\n",
+		       dev->name, lp->cur_tx, status);
+		pkt_len = 0;
+	}
+
 	if (++lp->cur_tx >= TX_RING_SIZE)
 		lp->cur_tx = 0;
 
