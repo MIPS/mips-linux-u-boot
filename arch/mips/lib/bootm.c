@@ -17,10 +17,10 @@ DECLARE_GLOBAL_DATA_PTR;
 #define	LINUX_MAX_ARGS		256
 
 static int linux_argc;
-static char **linux_argv;
+static u32 *linux_argv;
 static char *linux_argp;
 
-static char **linux_env;
+static u32 *linux_env;
 static char *linux_env_p;
 static int linux_env_idx;
 
@@ -48,14 +48,14 @@ void arch_lmb_reserve(struct lmb *lmb)
 static void linux_cmdline_init(void)
 {
 	linux_argc = 1;
-	linux_argv = (char **)gd->bd->bi_boot_params;
+	linux_argv = (u32 *)gd->bd->bi_boot_params;
 	linux_argv[0] = 0;
 	linux_argp = (char *)(linux_argv + LINUX_MAX_ARGS);
 }
 
 static void linux_cmdline_set(const char *value, size_t len)
 {
-	linux_argv[linux_argc] = linux_argp;
+	linux_argv[linux_argc] = (uintptr_t)linux_argp;
 	memcpy(linux_argp, value, len);
 	linux_argp[len] = 0;
 
@@ -71,7 +71,8 @@ static void linux_cmdline_dump(void)
 	      linux_argv, linux_argp);
 
 	for (i = 1; i < linux_argc; i++)
-		debug("   arg %03d: %s\n", i, linux_argv[i]);
+		debug("   arg %03d: %s\n", i,
+		      (char *)(ulong)(long)(int)linux_argv[i]);
 }
 
 static void linux_cmdline_legacy(bootm_headers_t *images)
@@ -138,7 +139,7 @@ static void linux_cmdline_append(bootm_headers_t *images)
 
 static void linux_env_init(void)
 {
-	linux_env = (char **)(((ulong) linux_argp + 15) & ~15);
+	linux_env = (u32 *)(((ulong) linux_argp + 15) & ~15);
 	linux_env[0] = 0;
 	linux_env_p = (char *)(linux_env + LINUX_MAX_ENVS);
 	linux_env_idx = 0;
@@ -147,14 +148,14 @@ static void linux_env_init(void)
 static void linux_env_set(const char *env_name, const char *env_val)
 {
 	if (linux_env_idx < LINUX_MAX_ENVS - 1) {
-		linux_env[linux_env_idx] = linux_env_p;
+		linux_env[linux_env_idx] = (uintptr_t)linux_env_p;
 
 		strcpy(linux_env_p, env_name);
 		linux_env_p += strlen(env_name);
 
 		if (CONFIG_IS_ENABLED(MALTA)) {
 			linux_env_p++;
-			linux_env[++linux_env_idx] = linux_env_p;
+			linux_env[++linux_env_idx] = (uintptr_t)linux_env_p;
 		} else {
 			*linux_env_p++ = '=';
 		}
