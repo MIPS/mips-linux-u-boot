@@ -312,6 +312,10 @@ static int pcnet_init(struct eth_device *dev, bd_t *bis)
 	val |= 0x20;
 	pcnet_write_bcr(dev, 32, val);
 
+	/* Enable SRAM for packet buffering */
+	pcnet_write_bcr(dev, 25, 0x17);
+	pcnet_write_bcr(dev, 26, 0xc);
+
 	/*
 	 * Enable NOUFLO on supported controllers, with the transmit
 	 * start point set to the full packet. This will cause entire
