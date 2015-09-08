@@ -17,6 +17,7 @@
 
 #include <asm/addrspace.h>
 #include <asm/io.h>
+#include <asm/maar.h>
 
 #include "malta.h"
 #include "superio.h"
@@ -82,6 +83,12 @@ phys_size_t initdram(int board_type)
 	extern unsigned char malta_spd_read(unsigned int offset);
 	unsigned int mem_type, nrow_addr, ncol_addr, nrows, nbanks;
 	phys_size_t sz;
+	struct mips_maar_cfg maar_cfg[] = {
+		{ 0x00010000ull, 0x000effffull, MIPS_MAAR_S | MIPS_MAAR_V },
+		{ 0x00100000ull, 0x0fffffffull, MIPS_MAAR_S | MIPS_MAAR_V },
+		{ 0x20000000ull, 0xffffffffull, MIPS_MAAR_S | MIPS_MAAR_V },
+		{ },
+	};
 
 	/* read values from SPD */
 	mem_type = malta_spd_read(SPD_MEM_TYPE);
@@ -98,6 +105,9 @@ phys_size_t initdram(int board_type)
 	sz = (phys_size_t)nrows << (nrow_addr + ncol_addr);
 	sz *= nbanks;
 	sz *= 8;
+
+	maar_cfg[2].upper = sz - 1;
+	mips_maar_init(maar_cfg);
 
 	return sz;
 }
