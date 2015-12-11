@@ -334,6 +334,22 @@ l1_init:
 #endif
 	mtc0		t0, CP0_CONFIG
 
+	/* Check for EVA / SegCtl registers */
+#if __mips_isa_rev < 6
+	mfc0		t1, CP0_CONFIG, 1
+	bgez		t1, 1f
+	mfc0		t1, CP0_CONFIG, 2
+	bgez		t1, 1f
+#endif
+	mfc0		t1, CP0_CONFIG, 3
+	and		t1, t1, MIPS_CONF3_SC
+	beqz		t1, 1f
+
+	/* When in EVA mode, set CCA via SegCtl1 reg */
+	mfc0		t1, CP0_SEGCTL1
+	ins		t1, t0, 16, 3
+	mtc0		t1, CP0_SEGCTL1
+
 	/*
 	 * then initialize D-cache.
 	 */

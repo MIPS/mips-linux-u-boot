@@ -208,6 +208,35 @@ wr_done:
 	/* Clear timer interrupt (CP0_COUNT cleared on branch to 'reset') */
 	mtc0	zero, CP0_COMPARE
 
+	/* Check for EVA / SegCtl registers */
+#if __mips_isa_rev < 6
+	mfc0	t0, CP0_CONFIG, 1
+	bgez	t0, 3f
+	 nop
+	mfc0	t0, CP0_CONFIG, 2
+	bgez	t0, 3f
+	 nop
+#endif
+	mfc0	t0, CP0_CONFIG, 3
+	sll     t0, t0, 6   /* SC bit */
+	bgez    t0, 3f
+	 nop
+
+	/* EVA Mode - ensure legacy memory map is active */
+
+	/* Kseg2 / Kseg3 */
+	li	t0, 0x00230013
+	mtc0	t0, CP0_SEGCTL0
+
+	/* Kseg0 / Kseg 1 */
+	li	t0, (CONF_CM_UNCACHED << 16) | (CONF_CM_UNCACHED)
+	mtc0	t0, CP0_SEGCTL1
+
+	/* Useg */
+	li	t0, 0x00330033
+	mtc0	t0, CP0_SEGCTL2
+
+3:
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	mfc0	t0, CP0_CONFIG
 	and	t0, t0, MIPS_CONF_IMPL
