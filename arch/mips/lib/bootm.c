@@ -216,9 +216,11 @@ static void linux_env_legacy(bootm_headers_t *images)
 	if (cp)
 		linux_env_set("eth1addr", cp);
 
-	if (CONFIG_IS_ENABLED(MALTA)) {
+	if (CONFIG_IS_ENABLED(MALTA) || CONFIG_IS_ENABLED(TARGET_SEAD3)) {
 		sprintf(env_buf, "%un8r", gd->baudrate);
 		linux_env_set("modetty0", env_buf);
+		linux_env_set("modetty1", env_buf);
+		linux_env_set("yamontty", "tty1");
 	}
 }
 
