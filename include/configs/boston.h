@@ -35,6 +35,7 @@
 #endif
 
 #define CONFIG_SYS_MALLOC_LEN		(256 * 1024)
+#define CONFIG_SYS_BOOTM_LEN		(64 * 1024 * 1024)
 
 /*
  * Console
