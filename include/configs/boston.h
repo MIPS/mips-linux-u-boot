@@ -92,4 +92,9 @@
 #define CONFIG_PARTITION_UUIDS
 #define CONFIG_CMD_PART
 
+/*
+ * Ethernet
+ */
+#define CONFIG_PHY_REALTEK
+
 #endif /* __CONFIGS_BOSTON_H__ */
