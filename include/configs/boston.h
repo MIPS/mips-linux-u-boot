@@ -69,4 +69,9 @@
 	(0xb8000000 + (128 << 20) - CONFIG_ENV_SIZE)
 #endif
 
+/*
+ * Ethernet
+ */
+#define CONFIG_PHY_REALTEK
+
 #endif /* __CONFIGS_BOSTON_H__ */
