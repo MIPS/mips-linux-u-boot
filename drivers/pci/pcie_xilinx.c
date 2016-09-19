@@ -160,6 +160,15 @@ static int pcie_xilinx_write_config(struct udevice *bus, pci_dev_t bdf,
 	if (err < 0)
 		return 0;
 
+	if (bdf == PCI_BDF(bus->seq, 0, 0)) {
+		switch (offset) {
+		case PCI_MEMORY_BASE:
+		case PCI_MEMORY_LIMIT:
+			/* Writing the memory base or limit causes problems */
+			return 0;
+		}
+	}
+
 	switch (size) {
 	case PCI_SIZE_8:
 		__raw_writeb(value, address);
