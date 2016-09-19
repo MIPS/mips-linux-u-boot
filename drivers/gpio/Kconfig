@@ -294,4 +294,12 @@ config MPC85XX_GPIO
 
 	  The driver has been tested on MPC85XX, but it is likely that other
 	  PowerQUICC III devices will work as well.
+
+config EG20T_GPIO
+	bool "Intel EG20T GPIO driver"
+	depends on DM_GPIO && DM_PCI
+	help
+	  Enable this to support the GPIO controller found in the Intel EG20T
+	  Platform Controller Hub.
+
 endmenu
