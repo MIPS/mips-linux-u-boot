@@ -497,7 +497,7 @@ phys_size_t getenv_bootm_size(void)
 	size = gd->bd->bi_dram[0].size;
 #else
 	start = (ulong)phys_to_virt(gd->bd->bi_memstart);
-	size = gd->bd->bi_memsize;
+	size = gd->ram_top - start;
 #endif
 
 	s = getenv("bootm_low");
