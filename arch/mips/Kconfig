@@ -92,6 +92,7 @@ config MACH_PIC32
 config TARGET_BOSTON
 	bool "Support Boston"
 	select DM
+	select DM_GPIO
 	select DM_SERIAL
 	select OF_CONTROL
 	select MIPS_CM
