@@ -385,6 +385,7 @@ config MIPS_CM
 
 config MIPS_CM_BASE
 	hex
+	default 0x16100000 if TARGET_BOSTON
 	default 0x1fbf8000
 	help
 	  The physical base address at which to map the MIPS Coherence Manager
