@@ -139,6 +139,9 @@ struct gpio_desc {
  */
 static inline bool dm_gpio_is_valid(const struct gpio_desc *desc)
 {
+	if (!IS_ENABLED(CONFIG_DM_GPIO))
+		return false;
+
 	return desc->dev != NULL;
 }
 
@@ -346,7 +349,14 @@ const char *gpio_get_bank_info(struct udevice *dev, int *offset_count);
  * @desc:	Returns description, on success
  * @return 0 if OK, -ve on error
  */
+#ifdef CONFIG_DM_GPIO
 int dm_gpio_lookup_name(const char *name, struct gpio_desc *desc);
+#else
+static inline int dm_gpio_lookup_name(const char *name, struct gpio_desc *desc)
+{
+	return -EINVAL;
+}
+#endif
 
 /**
  * gpio_lookup_name - Look up a GPIO name and return its details
@@ -359,8 +369,17 @@ int dm_gpio_lookup_name(const char *name, struct gpio_desc *desc);
  * @offsetp: Returns the offset number within this device
  * @gpiop: Returns the absolute GPIO number, numbered from 0
  */
+#ifdef CONFIG_DM_GPIO
 int gpio_lookup_name(const char *name, struct udevice **devp,
 		     unsigned int *offsetp, unsigned int *gpiop);
+#else
+static inline int
+gpio_lookup_name(const char *name, struct udevice **devp,
+		 unsigned int *offsetp, unsigned int *gpiop)
+{
+	return -EINVAL;
+}
+#endif
 
 /**
  * gpio_get_values_as_int() - Turn the values of a list of GPIOs into an int
@@ -431,8 +450,17 @@ int gpio_claim_vector(const int *gpio_num_array, const char *fmt);
  * something wrong with the list, or other -ve for another error (e.g.
  * -EBUSY if a GPIO was already requested)
  */
+#ifdef CONFIG_DM_GPIO
 int gpio_request_by_name(struct udevice *dev, const char *list_name,
 			 int index, struct gpio_desc *desc, int flags);
+#else
+static inline int
+gpio_request_by_name(struct udevice *dev, const char *list_name,
+		     int index, struct gpio_desc *desc, int flags)
+{
+	return -ENOENT;
+}
+#endif
 
 /**
  * gpio_request_list_by_name() - Request a list of GPIOs
@@ -455,9 +483,19 @@ int gpio_request_by_name(struct udevice *dev, const char *list_name,
  * @flags:	Indicates the GPIO input/output settings (GPIOD_...)
  * @return number of GPIOs requested, or -ve on error
  */
+#ifdef CONFIG_DM_GPIO
 int gpio_request_list_by_name(struct udevice *dev, const char *list_name,
 			      struct gpio_desc *desc_list, int max_count,
 			      int flags);
+#else
+static inline int
+gpio_request_list_by_name(struct udevice *dev, const char *list_name,
+			  struct gpio_desc *desc_list, int max_count,
+			  int flags)
+{
+	return -ENOENT;
+}
+#endif
 
 /**
  * dm_gpio_request() - manually request a GPIO
