@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <linux/sizes.h>
 
 #include <asm/io.h>
 
@@ -21,10 +22,10 @@ ulong board_get_usable_ram_top(ulong total_size)
 {
 	DECLARE_GLOBAL_DATA_PTR;
 
-	if (gd->ram_top < CONFIG_SYS_SDRAM_BASE) {
+	if (gd->ram_top < (ulong)phys_to_virt(CONFIG_SYS_SDRAM_BASE)) {
 		/* 2GB wrapped around to 0 */
-		return CKSEG0ADDR(256 << 20);
+		return (ulong)phys_to_virt(SZ_256M);
 	}
 
-	return min_t(unsigned long, gd->ram_top, CKSEG0ADDR(256 << 20));
+	return min_t(ulong, gd->ram_top, (ulong)phys_to_virt(SZ_256M));
 }
