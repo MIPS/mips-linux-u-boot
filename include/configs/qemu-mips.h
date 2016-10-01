@@ -93,7 +93,7 @@
 #define CONFIG_SYS_MIPS_TIMER_FREQ	(CONFIG_SYS_MHZ * 1000000)
 
 /* Cached addr */
-#define CONFIG_SYS_SDRAM_BASE		0x80000000
+#define CONFIG_SYS_SDRAM_BASE		0x0
 
 /* default load address */
 #define CONFIG_SYS_LOAD_ADDR		0x81000000
