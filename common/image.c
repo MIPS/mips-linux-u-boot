@@ -474,7 +474,7 @@ ulong getenv_bootm_low(void)
 	}
 
 #if defined(CONFIG_SYS_SDRAM_BASE)
-	return CONFIG_SYS_SDRAM_BASE;
+	return (ulong)phys_to_virt(CONFIG_SYS_SDRAM_BASE);
 #elif defined(CONFIG_ARM)
 	return gd->bd->bi_dram[0].start;
 #else
@@ -496,7 +496,7 @@ phys_size_t getenv_bootm_size(void)
 	start = gd->bd->bi_dram[0].start;
 	size = gd->bd->bi_dram[0].size;
 #else
-	start = gd->bd->bi_memstart;
+	start = (ulong)phys_to_virt(gd->bd->bi_memstart);
 	size = gd->bd->bi_memsize;
 #endif
 
