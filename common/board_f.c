@@ -315,7 +315,7 @@ __weak ulong board_get_usable_ram_top(ulong total_size)
 	 * Detect whether we have so much RAM that it goes past the end of our
 	 * 32-bit address space. If so, clip the usable RAM so it doesn't.
 	 */
-	if (gd->ram_top < CONFIG_SYS_SDRAM_BASE)
+	if (gd->ram_top < (ulong)phys_to_virt(CONFIG_SYS_SDRAM_BASE))
 		/*
 		 * Will wrap back to top of 32-bit space when reservations
 		 * are made.
@@ -362,7 +362,7 @@ static int setup_dest_addr(void)
 	gd->ram_size = board_reserve_ram_top(gd->ram_size);
 
 #ifdef CONFIG_SYS_SDRAM_BASE
-	gd->ram_top = CONFIG_SYS_SDRAM_BASE;
+	gd->ram_top = (ulong)phys_to_virt(CONFIG_SYS_SDRAM_BASE);
 #endif
 	gd->ram_top += get_effective_memsize();
 	gd->ram_top = board_get_usable_ram_top(gd->mon_len);
