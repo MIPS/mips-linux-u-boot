@@ -8,12 +8,13 @@
 
 #include <asm-offsets.h>
 #include <config.h>
+#include <asm/addrspace.h>
 #include <asm/asm.h>
 #include <asm/regdef.h>
 #include <asm/mipsregs.h>
 
 #ifndef CONFIG_SYS_INIT_SP_ADDR
-#define CONFIG_SYS_INIT_SP_ADDR	(CONFIG_SYS_SDRAM_BASE + \
+#define CONFIG_SYS_INIT_SP_ADDR	CKSEG0ADDR(CONFIG_SYS_SDRAM_BASE + \
 				CONFIG_SYS_INIT_SP_OFFSET)
 #endif
 
