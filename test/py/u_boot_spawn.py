@@ -135,7 +135,7 @@ class Spawn(object):
             the expected time.
         """
 
-        for pi in xrange(len(patterns)):
+        for pi in range(len(patterns)):
             if type(patterns[pi]) == type(''):
                 patterns[pi] = re.compile(patterns[pi])
 
@@ -144,7 +144,7 @@ class Spawn(object):
             while True:
                 earliest_m = None
                 earliest_pi = None
-                for pi in xrange(len(patterns)):
+                for pi in range(len(patterns)):
                     pattern = patterns[pi]
                     m = pattern.search(self.buf)
                     if not m:
@@ -199,7 +199,7 @@ class Spawn(object):
         """
 
         os.close(self.fd)
-        for i in xrange(100):
+        for i in range(100):
             if not self.isalive():
                 break
             time.sleep(0.1)
