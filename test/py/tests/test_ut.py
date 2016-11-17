@@ -14,7 +14,7 @@ def test_ut_dm_init(u_boot_console):
         data = 'this is a test'
         data += '\x00' * ((4 * 1024 * 1024) - len(data))
         with open(fn, 'wb') as fh:
-            fh.write(data)
+            fh.write(data.encode('utf-8'))
 
     fn = u_boot_console.config.source_dir + '/spi.bin'
     if not os.path.exists(fn):
