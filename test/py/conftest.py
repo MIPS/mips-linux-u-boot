@@ -19,10 +19,14 @@ import os
 import os.path
 import pytest
 from _pytest.runner import runtestprotocol
-import ConfigParser
 import re
 import StringIO
 import sys
+
+try:
+    import configparser as ConfigParser
+except:
+    import ConfigParser
 
 # Globals: The HTML log file, and the connection to the U-Boot console.
 log = None
