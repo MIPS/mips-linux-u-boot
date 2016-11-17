@@ -140,11 +140,11 @@ class RunAndLog(object):
             if stdout:
                 if stderr:
                     output += 'stdout:\n'
-                output += stdout
+                output += stdout.decode('utf8')
             if stderr:
                 if stdout:
                     output += 'stderr:\n'
-                output += stderr
+                output += stderr.decode('utf8')
             exit_status = p.returncode
             exception = None
         except subprocess.CalledProcessError as cpe:
