@@ -9,9 +9,12 @@
 #define __MIPS_ASM_CM_H__
 
 /* Global Control Register (GCR) offsets */
+#define GCR_CONFIG			0x0000
 #define GCR_BASE			0x0008
 #define GCR_BASE_UPPER			0x000c
 #define GCR_REV				0x0030
+#define GCR_REG0_BASE			0x0090
+#define GCR_REG0_MASK			0x0098
 #define GCR_L2_CONFIG			0x0130
 #define GCR_L2_TAG_ADDR			0x0600
 #define GCR_L2_TAG_ADDR_UPPER		0x0604
@@ -19,7 +22,21 @@
 #define GCR_L2_TAG_STATE_UPPER		0x060c
 #define GCR_L2_DATA			0x0610
 #define GCR_L2_DATA_UPPER		0x0614
+#define GCR_MMIO_REQ_LIMIT		0x06f8
+#define GCR_MMIO0_BOTTOM		0x0700
+#define  GCR_MMIO0_BOTTOM_ADDR		(0xffffffffull << 16)
+#define  GCR_MMIO0_BOTTOM_PORT_SHIFT	2
+#define  GCR_MMIO0_BOTTOM_PORT		(0xf << 2)
+#define  GCR_MMIO0_BOTTOM_DISABLE_LIMIT	(0x1 << 1)
+#define  GCR_MMIO0_BOTTOM_ENABLE	(0x1 << 0)
+#define GCR_MMIO0_TOP			0x0708
+#define  GCR_MMIO0_TOP_ADDR		(0xffffffffull << 16)
+#define GCR_MMIO1_BOTTOM		0x0710
 #define GCR_Cx_COHERENCE		0x2008
+
+/* GCR_CONFIG */
+#define GCR_CONFIG_NUMIOCU_SHIFT	8
+#define GCR_CONFIG_NUMIOCU_BITS		(0xf << 8)
 
 /* GCR_REV CM versions */
 #define GCR_REV_CM3			0x0800
@@ -55,6 +72,16 @@ static inline unsigned long mips_cm_l2_line_size(void)
 	line_sz = l2conf >> GCR_L2_CONFIG_LINESZ_SHIFT;
 	line_sz &= GENMASK(GCR_L2_CONFIG_LINESZ_BITS - 1, 0);
 	return line_sz ? (2 << line_sz) : 0;
+}
+
+static inline unsigned int mips_cm_num_iocus(void)
+{
+	unsigned int cfg, num_iocus;
+
+	cfg = __raw_readl(mips_cm_base() + GCR_CONFIG);
+	num_iocus = cfg & GCR_CONFIG_NUMIOCU_BITS;
+	num_iocus >>= GCR_CONFIG_NUMIOCU_SHIFT;
+	return num_iocus;
 }
 
 #endif /* !__ASSEMBLY__ */
