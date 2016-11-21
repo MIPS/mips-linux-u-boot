@@ -71,4 +71,12 @@
 	(0xb8000000 + (128 << 20) - CONFIG_ENV_SIZE)
 #endif
 
+#define CONFIG_ENV_CALLBACK_LIST_STATIC \
+	"io" ENV_DOT_ESCAPE ".coherent:io_coherent,"
+
+/*
+ * Miscellaneous
+ */
+#define CONFIG_MISC_INIT_F
+
 #endif /* __CONFIGS_BOSTON_H__ */
