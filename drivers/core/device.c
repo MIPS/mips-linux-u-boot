@@ -83,6 +83,17 @@ static int device_bind_common(struct udevice *parent, const struct driver *drv,
 		}
 	}
 
+	if (CONFIG_IS_ENABLED(OF_CONTROL) && ofnode_valid(node)) {
+		/*
+		 * Some devices may have cache-coherent DMA, in which case we
+		 * need to skip cache maintenance around DMA. Here we honor the
+		 * dma-coherent property in DT which indicates that a device
+		 * has such cache-coherent DMA.
+		 */
+		if (ofnode_read_bool(node, "dma-coherent"))
+			dev->flags |= DM_FLAG_DMA_CACHE_COHERENT;
+	}
+
 	if (drv->platdata_auto_alloc_size) {
 		bool alloc = !platdata;
 
