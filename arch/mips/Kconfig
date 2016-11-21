@@ -86,6 +86,7 @@ config TARGET_BOSTON
 	select DM_SERIAL
 	select OF_CONTROL
 	select MIPS_CM
+	select MIPS_CM_IOCU
 	select MIPS_L1_CACHE_SHIFT_6
 	select MIPS_L2_CACHE
 	select SUPPORTS_BIG_ENDIAN
@@ -391,6 +392,23 @@ config MIPS_CM_BASE
 	  Global Configuration Registers (GCRs). This should be set such that
 	  the GCRs occupy a region of the physical address space which is
 	  otherwise unused, or at minimum that software doesn't need to access.
+
+config MIPS_CM_IOCU
+	bool
+	depends on MIPS_CM
+	help
+	  Select this if your system has, or may have, an I/O Coherence Unit
+	  within its Coherence Manager. This allows for device DMA to be
+	  cache-coherent, allowing software to not perform costly cache
+	  maintenance around DMA operations.
+
+config MIPS_CPC_BASE
+	hex
+	default 0x16200000 if TARGET_BOSTON
+	default 0x1bde0000
+	help
+	  The physical base address at which to map the MIPS Cluster Power
+	  Controller registers.
 
 endif
 

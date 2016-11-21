@@ -8,4 +8,5 @@ obj-y += time.o
 obj-y += interrupts.o
 obj-y += cpu.o
 
-obj-$(CONFIG_MIPS_CM)	+= cm_init.o
+obj-$(CONFIG_MIPS_CM)	+= cm_init.o cm.o
+obj-$(CONFIG_MIPS_CM_IOCU)	+= cm-iocu.o
