@@ -6,12 +6,56 @@
 
 #include <common.h>
 #include <fdt_support.h>
+#include <asm/io.h>
+#include "boston-regs.h"
 
 int ft_board_setup(void *blob, bd_t *bd)
 {
 	DECLARE_GLOBAL_DATA_PTR;
 	u64 mem_start[2], mem_size[2];
-	int mem_regions;
+	int mem_regions, off;
+	bool coherent;
+	ulong phys;
+	u32 upper;
+	const fdt32_t *reg;
+	fdt32_t prop_val;
+
+	off = fdt_node_offset_by_compatible(blob, -1, "xlnx,axi-pcie-host-1.00.a");
+	while (off != -FDT_ERR_NOTFOUND) {
+		coherent = false;
+
+		reg = fdt_getprop(blob, off, "reg", NULL);
+		if (reg) {
+			phys = fdt_translate_address(blob, off, reg);
+			switch (phys) {
+			case 0x10000000: /* PCIe0 */
+				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE0ADDR);
+				break;
+
+			case 0x12000000: /* PCIe1 */
+				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE1ADDR);
+				break;
+
+			case 0x14000000: /* PCIe2 */
+				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE2ADDR);
+				break;
+
+			default:
+				upper = 0;
+			}
+
+			coherent = upper == 0x10;
+		}
+
+		if (coherent) {
+			prop_val = cpu_to_fdt32(1);
+			fdt_setprop(blob, off, "dma-coherent", &prop_val, sizeof(prop_val));
+		} else {
+			fdt_delprop(blob, off, "dma-coherent");
+		}
+
+		off = fdt_node_offset_by_compatible(blob, off, "xlnx,axi-pcie-host-1.00.a");
+	}
 
 	mem_start[0] = 0;
 	mem_size[0] = min_t(u64, 256llu << 20, gd->ram_size);
