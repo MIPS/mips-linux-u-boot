@@ -358,11 +358,17 @@ int do_bdinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 #elif defined(CONFIG_MIPS)
 
+void __weak board_detail(void)
+{
+	/* Please define boot_detail() for your platform */
+}
+
 int do_bdinfo(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	print_std_bdinfo(gd->bd);
 	print_num("relocaddr", gd->relocaddr);
 	print_num("reloc off", gd->reloc_off);
+	board_detail();
 
 	return 0;
 }
