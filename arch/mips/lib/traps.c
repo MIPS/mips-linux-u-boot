@@ -12,6 +12,7 @@
  */
 
 #include <common.h>
+#include <cli.h>
 #include <asm/mipsregs.h>
 #include <asm/addrspace.h>
 #include <asm/system.h>
@@ -71,6 +72,13 @@ void do_reserved(const struct pt_regs *regs)
 {
 	puts("\nOoops:\n");
 	show_regs(regs);
+
+	if (CONFIG_IS_ENABLED(RETURN_TO_CLI_AFTER_EXCEPTION)) {
+		change_c0_status(ST0_NMI | ST0_BEV | ST0_ERL | ST0_EXL, 0);
+		execution_hazard_barrier();
+		cli_longjmp();
+	}
+
 	hang();
 }
 
