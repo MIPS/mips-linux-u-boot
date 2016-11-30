@@ -15,6 +15,7 @@
 #include <console.h>
 #include <fdtdec.h>
 #include <malloc.h>
+#include <setjmp.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -212,8 +213,20 @@ err:
 }
 #endif /* CONFIG_IS_ENABLED(OF_CONTROL) */
 
+#if CONFIG_IS_ENABLED(RETURN_TO_CLI_AFTER_EXCEPTION)
+static jmp_buf cli_jmp_buf;
+
+void __noreturn cli_longjmp(void)
+{
+	longjmp(cli_jmp_buf, 0);
+}
+#endif
+
 void cli_loop(void)
 {
+#if CONFIG_IS_ENABLED(RETURN_TO_CLI_AFTER_EXCEPTION)
+	setjmp(cli_jmp_buf);
+#endif
 #ifdef CONFIG_HUSH_PARSER
 	parse_file_outer();
 	/* This point is never reached */
