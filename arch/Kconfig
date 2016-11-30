@@ -40,6 +40,7 @@ config MICROBLAZE
 config MIPS
 	bool "MIPS architecture"
 	select HAVE_ARCH_IOREMAP
+	select HAVE_ARCH_SETJMP
 	select HAVE_PRIVATE_LIBGCC
 	select SUPPORT_OF_CONTROL
 
