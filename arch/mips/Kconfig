@@ -392,6 +392,19 @@ config MIPS_CM_BASE
 	  the GCRs occupy a region of the physical address space which is
 	  otherwise unused, or at minimum that software doesn't need to access.
 
+config MIPS_DEV_BOARD_DEFAULTS
+	bool
+	default y if TARGET_BOSTON || TARGET_MALTA
+	select DISTRO_DEFAULTS
+	select CMD_CACHE
+	select CMD_COP
+	select CMD_CPU
+	select CMD_FITUPD
+	select CPU
+	select DISPLAY_CPUINFO
+	select MIPS_HWTRIGGER
+	select MIPS_UHI
+
 endif
 
 endmenu
