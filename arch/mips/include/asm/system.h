@@ -270,4 +270,21 @@ static inline void execution_hazard_barrier(void)
 		".set reorder");
 }
 
+static inline void instruction_hazard_barrier(void)
+{
+	asm goto(
+		".set push\n"
+	"	.set noat\n"
+#ifdef CONFIG_64BIT
+	"	dla $1, %l[out]\n"
+#else
+	"	la $1, %l[out]\n"
+#endif
+	"	jr.hb $1\n"
+	"	.set	pop"
+	: : : "at" : out);
+out:
+	return;
+}
+
 #endif /* _ASM_SYSTEM_H */
