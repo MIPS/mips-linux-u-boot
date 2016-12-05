@@ -14,6 +14,7 @@
 #ifndef _ASM_SYSTEM_H
 #define _ASM_SYSTEM_H
 
+#include <asm/compiler.h>
 #include <asm/sgidefs.h>
 #include <asm/ptrace.h>
 #if 0
@@ -268,6 +269,23 @@ static inline void execution_hazard_barrier(void)
 		".set noreorder\n"
 		"ehb\n"
 		".set reorder");
+}
+
+static inline void instruction_hazard_barrier(void)
+{
+	asm goto(
+		".set push\n"
+	"	.set noat\n"
+#ifdef CONFIG_64BIT
+	"	dla	$" MIPS_R_PFX "1, %l[out]\n"
+#else
+	"	la	$" MIPS_R_PFX "1, %l[out]\n"
+#endif
+	"	jr.hb	$" MIPS_R_PFX "1\n"
+	"	.set	pop"
+	: : : "at" : out);
+out:
+	return;
 }
 
 #endif /* _ASM_SYSTEM_H */
