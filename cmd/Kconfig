@@ -777,4 +777,6 @@ config CMD_UBI
 	  (www.linux-mtd.infradead.org). Activate this option if you want
 	  to use U-Boot UBI commands.
 
+source "arch/mips/cmd/Kconfig"
+
 endmenu
