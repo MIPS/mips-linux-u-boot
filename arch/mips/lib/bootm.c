@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <image.h>
+#include <fdtdec.h>
 #include <fdt_support.h>
 #include <asm/addrspace.h>
 #include <asm/io.h>
@@ -298,6 +299,7 @@ static void boot_jump_linux(bootm_headers_t *images)
 	typedef void __noreturn (*kernel_entry_t)(int, ulong, ulong, ulong);
 	kernel_entry_t kernel = (kernel_entry_t) images->ep;
 	ulong linux_extra = 0;
+	bool rev_endian = false;
 
 	debug("## Transferring control to Linux (at address %p) ...\n", kernel);
 
@@ -312,6 +314,23 @@ static void boot_jump_linux(bootm_headers_t *images)
 #if CONFIG_IS_ENABLED(BOOTSTAGE_REPORT)
 	bootstage_report();
 #endif
+
+#if CONFIG_IS_ENABLED(FIT)
+	/*
+	 * If we're booting from a FIT image, check whether the kernel image
+	 * node has an endianness property which doesn't match that of U-Boot.
+	 */
+	if (images->fit_noffset_os >= 0)
+		rev_endian = fdtdec_get_bool(images->fit_hdr_os,
+					     images->fit_noffset_os,
+					     CONFIG_IS_ENABLED(SYS_BIG_ENDIAN) ?
+					     "little-endian" : "big-endian");
+#endif
+
+	if (rev_endian) {
+		printf("   Incorrect kernel endianness\n");
+		return;
+	}
 
 	if (images->ft_len)
 		kernel(-2, (ulong)images->ft_addr, 0, 0);
