@@ -14,15 +14,18 @@ int ft_board_setup(void *blob, bd_t *bd)
 	DECLARE_GLOBAL_DATA_PTR;
 	u64 mem_start[2], mem_size[2];
 	int mem_regions, off;
-	bool coherent;
+	bool coherent, enabled;
 	ulong phys;
-	u32 upper;
+	u32 upper, build_cfg;
 	const fdt32_t *reg;
 	fdt32_t prop_val;
+
+	build_cfg = __raw_readl((u32 *)BOSTON_PLAT_BUILDCFG0);
 
 	off = fdt_node_offset_by_compatible(blob, -1, "xlnx,axi-pcie-host-1.00.a");
 	while (off != -FDT_ERR_NOTFOUND) {
 		coherent = false;
+		enabled = false;
 
 		reg = fdt_getprop(blob, off, "reg", NULL);
 		if (reg) {
@@ -30,14 +33,17 @@ int ft_board_setup(void *blob, bd_t *bd)
 			switch (phys) {
 			case 0x10000000: /* PCIe0 */
 				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE0ADDR);
+				enabled = build_cfg & BOSTON_PLAT_BUILDCFG0_PCIE0;
 				break;
 
 			case 0x12000000: /* PCIe1 */
 				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE1ADDR);
+				enabled = build_cfg & BOSTON_PLAT_BUILDCFG0_PCIE1;
 				break;
 
 			case 0x14000000: /* PCIe2 */
 				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE2ADDR);
+				enabled = build_cfg & BOSTON_PLAT_BUILDCFG0_PCIE2;
 				break;
 
 			default:
@@ -53,6 +59,9 @@ int ft_board_setup(void *blob, bd_t *bd)
 		} else {
 			fdt_delprop(blob, off, "dma-coherent");
 		}
+
+		fdt_setprop_string(blob, off, "status",
+				   enabled ? "okay" : "disabled");
 
 		off = fdt_node_offset_by_compatible(blob, off, "xlnx,axi-pcie-host-1.00.a");
 	}
