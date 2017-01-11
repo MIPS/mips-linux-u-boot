@@ -100,4 +100,9 @@
  */
 #define CONFIG_PHY_REALTEK
 
+/*
+ * LCD Display
+ */
+#define CONFIG_CMD_DISPLAY
+
 #endif /* __CONFIGS_BOSTON_H__ */
