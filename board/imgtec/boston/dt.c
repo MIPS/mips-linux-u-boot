@@ -9,6 +9,19 @@
 #include <asm/io.h>
 #include "boston-regs.h"
 
+static const char sleipnir_compat[] = "img,boston-sleipnir\0img,boston";
+
+const void *get_best_fit_compat(const void *fdt, int *lenp)
+{
+	if (detect_sleipnir()) {
+		if (lenp)
+			*lenp = sizeof(sleipnir_compat);
+		return sleipnir_compat;
+	}
+
+	return fdt_getprop(fdt, 0, "compatible", lenp);
+}
+
 int ft_board_setup(void *blob, bd_t *bd)
 {
 	DECLARE_GLOBAL_DATA_PTR;
@@ -33,7 +46,11 @@ int ft_board_setup(void *blob, bd_t *bd)
 			switch (phys) {
 			case 0x10000000: /* PCIe0 */
 				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE0ADDR);
-				enabled = build_cfg & BOSTON_PLAT_BUILDCFG0_PCIE0;
+
+				if (detect_sleipnir())
+					enabled = false;
+				else
+					enabled = build_cfg & BOSTON_PLAT_BUILDCFG0_PCIE0;
 				break;
 
 			case 0x12000000: /* PCIe1 */

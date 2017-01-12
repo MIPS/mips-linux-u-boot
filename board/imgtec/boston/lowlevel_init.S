@@ -5,6 +5,7 @@
  */
 
 #include <config.h>
+#include <pci.h>
 
 #include <asm/addrspace.h>
 #include <asm/asm.h>
@@ -12,6 +13,8 @@
 #include <asm/regdef.h>
 
 #include "boston-regs.h"
+
+#define DEV_CFG	(1 << XLNX_PCIE_CFG_BUS_SHIFT)
 
 .data
 
@@ -23,7 +26,31 @@ msg_ddr_ok:	.ascii "DDR OK  "
 LEAF(lowlevel_init)
 	move	s0, ra
 
-	PTR_LA	a0, msg_ddr_cal
+	/* Check whether we have a sleipnir attached */
+	bal	detect_sleipnir
+	beqz	v0, 1f
+
+	/* Enable PCIe0 bridge */
+	li	t1, XLNX_PCIE_RPSC_BRIDGE_EN
+	sw	t1, XLNX_PCIE_RPSC(v1)
+
+	/* Set PCIe0 BAR */
+	li	t1, 0x0100
+	sw	t1, PCI_BASE_ADDRESS_2(v1)
+
+	/* Enable PCIe0 bus mastering & memory space */
+	li	t1, PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY
+	sw	t1, PCI_COMMAND(v1)
+
+	/* Set BAR */
+	li	t1, 0x10000000
+	sw	t1, (DEV_CFG + PCI_BASE_ADDRESS_0)(v1)
+
+	/* Enable bus mastering & memory space */
+	li	t1, PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY
+	sw	t1, (DEV_CFG + PCI_COMMAND)(v1)
+
+1:	PTR_LA	a0, msg_ddr_cal
 	bal	lowlevel_display
 
 	PTR_LI	t0, BOSTON_PLAT_DDR3STAT
@@ -37,6 +64,38 @@ LEAF(lowlevel_init)
 	move	v0, zero
 	jr	s0
 	END(lowlevel_init)
+
+LEAF(detect_sleipnir)
+	/* Check if we have a PCIe0 controller */
+	li	t0, BOSTON_PLAT_BUILDCFG0
+	lw	t0, 0(t0)
+	andi	t0, t0, BOSTON_PLAT_BUILDCFG0_PCIE0
+	beqz	t0, 1f
+
+	/* Check if PCIe0 link is up */
+	li      v1, BOSTON_PCIE0_BASE
+	lw	t0, XLNX_PCIE_PSCR(v1)
+	andi	t0, t0, XLNX_PCIE_PSCR_LINK_UP
+	beqz	t0, 1f
+
+	/* Setup subordinate & secondary to allow downstream config access */
+	li	t1, (1 << ((PCI_SUBORDINATE_BUS - PCI_PRIMARY_BUS) * 8)) | \
+		    (1 << ((PCI_SECONDARY_BUS - PCI_PRIMARY_BUS) * 8))
+	sw	t1, PCI_PRIMARY_BUS(v1)
+
+	/* Check whether a sleipnir is attached to PCIe0 */
+	lw	t0, (DEV_CFG + PCI_VENDOR_ID)(v1)
+	li	t1, (PCI_DEVICE_ID_MIPS_SLEIPNIR << 16) | PCI_VENDOR_ID_MIPS
+	bne	t0, t1, 1f
+
+	/* Return 1; we found a sleipnir */
+	li	v0, 1
+	jr	ra
+
+	/* Return 0; no sleipnir */
+1:	move	v0, zero
+	jr	ra
+	END(detect_sleipnir)
 
 LEAF(lowlevel_display)
 	.set	push

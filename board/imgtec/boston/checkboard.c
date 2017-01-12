@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <pci.h>
 
 #include <asm/io.h>
 #include <asm/mipsregs.h>
@@ -57,7 +58,8 @@ int checkboard(void)
 {
 	lowlevel_display("U-boot  ");
 
-	printf("Board: MIPS Boston\n");
+	printf("Board: MIPS Boston%s\n",
+	       detect_sleipnir() ? " + Sleipnir" : "");
 
 	return 0;
 }

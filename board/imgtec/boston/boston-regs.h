@@ -9,8 +9,18 @@
 
 #include <asm/addrspace.h>
 
+#define BOSTON_PCIE0_BASE		CKSEG1ADDR(0x10000000)
 #define BOSTON_PLAT_BASE		CKSEG1ADDR(0x17ffd000)
 #define BOSTON_LCD_BASE			CKSEG1ADDR(0x17fff000)
+
+/*
+ * Xilinx AXI Bridge for PCI Express Registers
+ */
+#define XLNX_PCIE_PSCR			0x144
+#define  XLNX_PCIE_PSCR_LINK_UP		(0x1 << 11)
+#define XLNX_PCIE_RPSC			0x148
+#define  XLNX_PCIE_RPSC_BRIDGE_EN	0x1
+#define XLNX_PCIE_CFG_BUS_SHIFT		20
 
 /*
  * Platform Register Definitions
@@ -31,5 +41,9 @@
 
 #define BOSTON_PLAT_DDRCONF0		(BOSTON_PLAT_BASE + 0x38)
 # define BOSTON_PLAT_DDRCONF0_SIZE	(0xf << 0)
+
+#ifndef __ASSEMBLY__
+extern bool detect_sleipnir(void);
+#endif
 
 #endif /* __BOARD_BOSTON_REGS_H__ */
