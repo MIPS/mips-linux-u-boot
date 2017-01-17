@@ -26,8 +26,7 @@
 	.text
 	.set noreorder
 
-	.globl	lowlevel_init
-lowlevel_init:
+LEAF(lowlevel_init)
 	/* detect the core card */
 	PTR_LI	t0, CKSEG1ADDR(MALTA_REVISION)
 	lw	t0, 0(t0)
@@ -230,3 +229,4 @@ _msc01:
 
 	jr	ra
 	 nop
+	END(lowlevel_init)
