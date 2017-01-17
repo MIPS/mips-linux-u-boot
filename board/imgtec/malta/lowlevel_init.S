@@ -24,7 +24,6 @@
 #endif
 
 	.text
-	.set noreorder
 
 LEAF(lowlevel_init)
 	/* detect the core card */
@@ -39,13 +38,11 @@ LEAF(lowlevel_init)
 	beq	t0, t1, _gt64120
 
 	/* core cards using the MSC01 system controller */
-	 li	t1, MALTA_REVISION_CORID_CORE_FPGA6
+	li	t1, MALTA_REVISION_CORID_CORE_FPGA6
 	beq	t0, t1, _msc01
-	 nop
 
 	/* unknown system controller */
 	b	.
-	 nop
 
 	/*
 	 * Load BAR registers of GT64120 as done by YAMON
@@ -87,7 +84,6 @@ _gt64120:
 	sw	t0, GT_PCI0M1HD_OFS(t1)
 
 	jr	ra
-	 nop
 
 	/*
 	 *
@@ -228,5 +224,4 @@ _msc01:
 	sw	t1, MSC01_PCI_CFG_OFS(t0)
 
 	jr	ra
-	 nop
 	END(lowlevel_init)
