@@ -71,6 +71,7 @@ endif
 
 PLATFORM_CPPFLAGS		+= -G 0 $(PF_ABICALLS) $(PF_PIC)
 PLATFORM_CPPFLAGS		+= -msoft-float
+PLATFORM_CPPFLAGS		+= -Wa,-O
 PLATFORM_LDFLAGS		+= -G 0 -static -n -nostdlib
 PLATFORM_RELFLAGS		+= -ffunction-sections -fdata-sections
 LDFLAGS_FINAL			+= --gc-sections $(PF_PIE)
