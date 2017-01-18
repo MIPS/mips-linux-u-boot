@@ -12,8 +12,9 @@
 #include <asm/addrspace.h>
 #include <asm/asm.h>
 #include <asm/regdef.h>
-#include <asm/malta.h>
 #include <asm/mipsregs.h>
+
+#include "malta.h"
 
 #ifdef CONFIG_SYS_BIG_ENDIAN
 #define CPU_TO_GT32(_x)		((_x))

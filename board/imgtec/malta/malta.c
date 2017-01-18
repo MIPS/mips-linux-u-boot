@@ -15,8 +15,8 @@
 
 #include <asm/addrspace.h>
 #include <asm/io.h>
-#include <asm/malta.h>
 
+#include "malta.h"
 #include "superio.h"
 
 enum core_card {
