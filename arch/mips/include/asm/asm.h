@@ -443,4 +443,13 @@ symbol		=	value
 
 #endif
 
+	.macro	log2	dst, src
+	.set	push
+	.set	noat
+	clz	\dst, \src
+	li	$1, 31
+	sub	\dst, $1, \dst
+	.set	pop
+	.endm
+
 #endif /* __ASM_ASM_H */

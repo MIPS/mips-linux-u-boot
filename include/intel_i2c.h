@@ -38,9 +38,15 @@
 /* I801 Host Control register bits */
 #define SMBHSTCNT_INTREN	0x01
 #define SMBHSTCNT_KILL		0x02
+#define SMBHSTCNT_CMD_BYTE_DATA	(0x2 << 2)
 #define SMBHSTCNT_LAST_BYTE	0x20
 #define SMBHSTCNT_START		0x40
 #define SMBHSTCNT_PEC_EN	0x80	/* ICH3 and later */
+
+/* Address register bits */
+#define SMBXMITADD_WRITE	0x0
+#define SMBXMITADD_READ		0x1
+#define SMBXMITADD_ADDR_SHF	1
 
 /* Auxiliary control register bits, ICH4+ only */
 #define SMBAUXCTL_CRC		1

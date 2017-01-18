@@ -12,6 +12,7 @@
 #include <pci_gt64120.h>
 #include <pci_msc01.h>
 #include <rtc.h>
+#include <spd.h>
 
 #include <asm/addrspace.h>
 #include <asm/io.h>
@@ -67,7 +68,27 @@ static enum sys_con malta_sys_con(void)
 
 phys_size_t initdram(int board_type)
 {
-	return CONFIG_SYS_MEM_SIZE;
+	extern unsigned char malta_spd_read(unsigned int offset);
+	unsigned int mem_type, nrow_addr, ncol_addr, nrows, nbanks;
+	phys_size_t sz;
+
+	/* read values from SPD */
+	mem_type = malta_spd_read(SPD_MEM_TYPE);
+	nrow_addr = malta_spd_read(SPD_NROW_ADDR) & 0xf;
+	ncol_addr = malta_spd_read(SPD_NCOL_ADDR) & 0xf;
+	nrows = malta_spd_read(SPD_NROWS);
+	nbanks = malta_spd_read(SPD_NBANKS);
+
+	/* handle DDR2 row encoding */
+	if (mem_type >= SPD_MEMTYPE_DDR2)
+		nrows = (nrows & 0x7) + 1;
+
+	/* calculate RAM size */
+	sz = (phys_size_t)nrows << (nrow_addr + ncol_addr);
+	sz *= nbanks;
+	sz *= 8;
+
+	return sz;
 }
 
 int checkboard(void)

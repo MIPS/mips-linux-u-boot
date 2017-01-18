@@ -4,10 +4,13 @@
  * SPDX-License-Identifier:	GPL-2.0
  */
 
+#include <asm-offsets.h>
 #include <config.h>
 #include <gt64120.h>
+#include <intel_i2c.h>
 #include <msc01.h>
 #include <pci.h>
+#include <spd.h>
 
 #include <asm/addrspace.h>
 #include <asm/asm.h>
@@ -24,23 +27,39 @@
 	(((_x) & 0xff0000) >> 8) | (((_x) & 0xff000000) >> 24))
 #endif
 
+#define SMBUS_IO_OFFSET	0x1100
+
+#define R_SYSCON	ta2
+#define R_MEM_TYPE	s0
+#define R_NROWS		s4
+#define R_NROW_ADDR	s5
+#define R_NCOL_ADDR	s6
+#define R_RETURN	s7
+
 	.text
 
-LEAF(lowlevel_init)
+NESTED(lowlevel_init, 0, ra)
+	/* save return register */
+	move	R_RETURN, ra
+
+	/* mux SMBus host controller to I2C bus */
+	PTR_LI	t0, CKSEG1ADDR(0x1f000b18)
+	sw	zero, 0(t0)
+
 	/* detect the core card */
 	PTR_LI	t0, CKSEG1ADDR(MALTA_REVISION)
 	lw	t0, 0(t0)
 	srl	t0, t0, MALTA_REVISION_CORID_SHF
-	andi	t0, t0, (MALTA_REVISION_CORID_MSK >> \
+	andi	R_SYSCON, t0, (MALTA_REVISION_CORID_MSK >> \
 			 MALTA_REVISION_CORID_SHF)
 
 	/* core cards using the gt64120 system controller */
 	li	t1, MALTA_REVISION_CORID_CORE_LV
-	beq	t0, t1, _gt64120
+	beq	R_SYSCON, t1, _gt64120
 
 	/* core cards using the MSC01 system controller */
 	li	t1, MALTA_REVISION_CORID_CORE_FPGA6
-	beq	t0, t1, _msc01
+	beq	R_SYSCON, t1, _msc01
 
 	/* unknown system controller */
 	b	.
@@ -84,7 +103,36 @@ _gt64120:
 	li	t0, CPU_TO_GT32(0x5e000000)
 	sw	t0, GT_PCI0M1HD_OFS(t1)
 
-	jr	ra
+#define SMBUS_DEVFN \
+	((0xa << 1) | (0x3 << 8))
+
+	/* disable SMBus host controller I/O accesses */
+	PTR_LI	t0, CKSEG1ADDR(MALTA_GT_PCIIO_BASE)
+	li	t2, (1 << 31) | SMBUS_DEVFN | PCI_COMMAND
+	sw	t2, 0xcf8(t0)
+	sw	zero, 0xcfc(t0)
+
+	/* set SMBus host controller I/O base address */
+	li	t2, (1 << 31) | SMBUS_DEVFN | 0x90
+	sw	t2, 0xcf8(t0)
+	li	t3, SMBUS_IO_OFFSET
+	sw	t3, 0xcfc(t0)
+
+	/* enable SMBus host controller */
+	li	t2, (1 << 31) | SMBUS_DEVFN | 0xd0
+	sw	t2, 0xcf8(t0)
+	li	t3, 0x1 << 16
+	sw	t3, 0xcfc(t0)
+
+	/* enable SMBus host controller I/O accesses */
+	li	t2, (1 << 31) | SMBUS_DEVFN | PCI_COMMAND
+	sw	t2, 0xcf8(t0)
+	li	t3, PCI_COMMAND_IO
+	sw	t3, 0xcfc(t0)
+
+#undef SMBUS_DEVFN
+
+	jr	R_RETURN
 
 	/*
 	 *
@@ -121,7 +169,7 @@ _msc01:
 	sw	t1, MSC01_BIU_MCBAS2L_OFS(t0)
 	sw	t2, MSC01_BIU_MCMSK2L_OFS(t0)
 
-	/* initialise IP1 - unused */
+	/* initialise IP1 - memory controller */
 	li	t1, MALTA_MSC01_IP1_BASE
 	li	t2, -MALTA_MSC01_IP1_SIZE
 	sw	t1, MSC01_BIU_IP1BAS1L_OFS(t0)
@@ -224,7 +272,115 @@ _msc01:
 	or	t1, t1, t2
 	sw	t1, MSC01_PCI_CFG_OFS(t0)
 
-	jr	ra
+#define SMBUS_DEVFN \
+	((0xa << MSC01_PCI_CFGADDR_DNUM_SHF) | \
+	 (0x3 << MSC01_PCI_CFGADDR_FNUM_SHF))
+
+	/* disable SMBus host controller I/O accesses */
+	li	t1, MSC01_PCI_INTSTAT_MA_MSK | MSC01_PCI_INTSTAT_TA_MSK
+	sw	t1, MSC01_PCI_INTSTAT_OFS(t0)
+	li	t2, SMBUS_DEVFN | PCI_COMMAND
+	sw	t2, MSC01_PCI_CFGADDR_OFS(t0)
+	sw	zero, MSC01_PCI_CFGDATA_OFS(t0)
+
+	/* set SMBus host controller I/O base address */
+	sw	t1, MSC01_PCI_INTSTAT_OFS(t0)
+	li	t2, SMBUS_DEVFN | 0x90
+	sw	t2, MSC01_PCI_CFGADDR_OFS(t0)
+	li	t3, SMBUS_IO_OFFSET
+	sw	t3, MSC01_PCI_CFGDATA_OFS(t0)
+
+	/* enable SMBus host controller */
+	sw	t1, MSC01_PCI_INTSTAT_OFS(t0)
+	li	t2, SMBUS_DEVFN | 0xd0
+	sw	t2, MSC01_PCI_CFGADDR_OFS(t0)
+	li	t3, 0x1 << 16
+	sw	t3, MSC01_PCI_CFGDATA_OFS(t0)
+
+	/* enable SMBus host controller I/O accesses */
+	sw	t1, MSC01_PCI_INTSTAT_OFS(t0)
+	li	t2, SMBUS_DEVFN | PCI_COMMAND
+	sw	t2, MSC01_PCI_CFGADDR_OFS(t0)
+	li	t3, PCI_COMMAND_IO
+	sw	t3, MSC01_PCI_CFGDATA_OFS(t0)
+
+#undef SMBUS_DEVFN
+
+	/* detect the type of memory */
+	li	a0, SPD_MEM_TYPE
+	bal	malta_spd_read
+	move	R_MEM_TYPE, v0
+
+	/* check if we have DDR or DDR2 */
+	li	t0, SPD_MEMTYPE_DDR
+	beq	R_MEM_TYPE, t0, 2f
+	li	t0, SPD_MEMTYPE_DDR2
+	beq	R_MEM_TYPE, t0, 2f
+
+	/* check if we have non-DDR SDRAM */
+	li	t0, SPD_MEMTYPE_SDRAM
+	beq	R_MEM_TYPE, t0, 2f
+
+	/* bad memory type - hang */
+	PTR_LA	a0, msg_mem_type
+	bal	malta_lcd_puts
+1:	wait
+	b	1b
+
+	/* read module banks from SPD */
+2:	li	a0, SPD_NROWS
+	bal	malta_spd_read
+	move	R_NROWS, v0
+
+	/* handle DDR2 bank encoding */
+	li	t1, SPD_MEMTYPE_DDR2
+	bltu	R_MEM_TYPE, t1, 1f
+	andi	R_NROWS, R_NROWS, 0x7
+	addiu	R_NROWS, R_NROWS, 1
+
+	/* read number of banks */
+1:	li	a0, SPD_NBANKS
+	bal	malta_spd_read
+	move	t1, v0
+
+	/* read number of row addresses */
+	li	a0, SPD_NROW_ADDR
+	bal	malta_spd_read
+	andi	R_NROW_ADDR, v0, 0xf
+
+	/* read number of column addresses */
+	li	a0, SPD_NCOL_ADDR
+	bal	malta_spd_read
+	andi	R_NCOL_ADDR, v0, 0xf
+
+	/* use less column address bits than row address bits */
+	addiu	t1, R_NROW_ADDR, -1
+	ble	R_NCOL_ADDR, t1, 1f
+	move	R_NCOL_ADDR, t1
+
+	/* sum of rows & columns must not exceed 25 */
+1:	li	t1, 25
+	sub	t1, t1, R_NROW_ADDR
+	blt	R_NCOL_ADDR, t1, 1f
+	move	R_NCOL_ADDR, t1
+
+	/* skip over CoreFPGA6 path if not running on CoreFPGA6 */
+1:	li	ta0, MALTA_REVISION_CORID_CORE_FPGA6
+	bne	R_SYSCON, ta0, 1f
+
+	/* auto-tune CoreFPGA6 memory controller timings */
+	log2	ta1, R_NROWS
+	sll	v0, ta1, MALTA_MSC01_CF6_MC_TUNE_NROWS_SHF
+	log2	ta1, t1
+	sll	ta1, ta1, MALTA_MSC01_CF6_MC_TUNE_NBANKS_SHF
+	or	v0, v0, ta1
+	sll	ta0, R_NROW_ADDR, MALTA_MSC01_CF6_MC_TUNE_NROW_ADDR_SHF
+	or	v0, v0, ta0
+	or	v0, v0, R_NCOL_ADDR
+	PTR_LI	ta0, CKSEG1ADDR(MALTA_MSC01_CF6_MC_TUNE)
+	sw	v0, 0(ta0)
+
+1:	jr	R_RETURN
 	END(lowlevel_init)
 
 LEAF(malta_lcd_puts)
@@ -250,3 +406,47 @@ LEAF(malta_lcd_puts)
 	b	2b
 	.set	pop
 	END(malta_lcd_puts)
+
+LEAF(malta_spd_read)
+	.set	push
+	.set	noat
+	PTR_LI	$1, CKSEG1ADDR(MALTA_REVISION)
+	lw	$1, 0($1)
+	srl	$1, $1, MALTA_REVISION_CORID_SHF
+	and	$1, $1, MALTA_REVISION_CORID_MSK >> MALTA_REVISION_CORID_SHF
+	li	v0, MALTA_REVISION_CORID_CORE_LV
+	PTR_LI	v1, CKSEG1ADDR(MALTA_MSC01_PCIIO_BASE + SMBUS_IO_OFFSET)
+	bne	$1, v0, 1f
+	PTR_LI	v1, CKSEG1ADDR(MALTA_GT_PCIIO_BASE + SMBUS_IO_OFFSET)
+
+1:	li	$1, (0x50 << SMBXMITADD_ADDR_SHF) | SMBXMITADD_READ
+	sb	$1, SMBXMITADD(v1)
+
+	sb	a0, SMBHSTCMD(v1)
+
+	/* wait until ready */
+1:	lbu	$1, SMBHSTSTAT(v1)
+	sb	$1, SMBHSTSTAT(v1)
+	bnez	$1, 1b
+
+	/* start transaction */
+	li	$1, SMBHSTCNT_START | SMBHSTCNT_CMD_BYTE_DATA
+	sb	$1, SMBHSTCTL(v1)
+
+	/* wait until done */
+1:	lbu	$1, SMBHSTSTAT(v1)
+	andi	$1, $1, SMBHSTSTS_INTR | SMBHSTSTS_HOST_BUSY
+	xori	$1, $1, SMBHSTSTS_INTR
+	bnez	$1, 1b
+
+	/* load the data */
+	lbu	v0, SMBHSTDAT0(v1)
+
+	/* return */
+	jr	ra
+	.set	pop
+	END(malta_spd_read)
+
+.data
+
+msg_mem_type:	.asciiz "Mem Type"
