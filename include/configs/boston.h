@@ -96,6 +96,11 @@
 #define CONFIG_CMD_PART
 
 /*
+ * SD Card
+ */
+#define CONFIG_GENERIC_MMC
+
+/*
  * Ethernet
  */
 #define CONFIG_PHY_REALTEK

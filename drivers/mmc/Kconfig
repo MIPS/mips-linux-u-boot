@@ -181,6 +181,18 @@ config MMC_SDHCI_MV
 
 	  If unsure, say N.
 
+config MMC_PCI
+	bool "PCI MMC Controller Support"
+	depends on MMC_SDHCI
+	default y if X86
+	help
+	  This enables support for Secure Digital Host Controller Interface
+	  (SDHCI) controllers attached via a PCI bus.
+
+	  If you have an SDHCI controller attached via PCI, say Y here
+
+	  If unsure, say N
+
 config MMC_SDHCI_S5P
 	bool "SDHCI support on Samsung S5P SoC"
 	depends on MMC_SDHCI

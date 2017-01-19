@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <malloc.h>
 #include <sdhci.h>
-#include <asm/pci.h>
 
 int pci_mmc_init(const char *name, struct pci_device_id *mmc_supported)
 {
