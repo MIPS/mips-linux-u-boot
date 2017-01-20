@@ -45,6 +45,9 @@ NESTED(lowlevel_init, 0, ra)
 	/* save return register */
 	move	R_RETURN, ra
 
+	PTR_LA	a0, msg_ll_init
+	bal	malta_lcd_puts
+
 	/* mux SMBus host controller to I2C bus */
 	PTR_LI	t0, CKSEG1ADDR(0x1f000b18)
 	sw	zero, 0(t0)
@@ -854,6 +857,7 @@ denali_ddr_regs:
 	.word 0x00000000, 0x00000000, 0x00000000, 0x00000000
 denali_ddr_regs_end:
 
+msg_ll_init:	.asciiz "LL Init"
 msg_mem_type:	.asciiz "Mem Type"
 msg_bad_cas:	.asciiz "Bad CAS"
 msg_bad_ram:	.asciiz "Bad RAM"
