@@ -69,4 +69,10 @@
 
 #define PCI_CFG_PIIX4_IDETIM_IDE	(1 << 15)
 
+#ifndef __ASSEMBLY__
+
+extern void malta_lcd_puts(const char *str);
+
+#endif /* __ASSEMBLY__ */
+
 #endif /* _MIPS_ASM_MALTA_H */

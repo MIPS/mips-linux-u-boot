@@ -226,3 +226,27 @@ _msc01:
 
 	jr	ra
 	END(lowlevel_init)
+
+LEAF(malta_lcd_puts)
+	.set	push
+	.set	noat
+	PTR_LI	v0, CKSEG1ADDR(MALTA_ASCIIPOS0)
+	PTR_ADDIU \
+		v1, v0, 8 * (MALTA_ASCIIPOS1 - MALTA_ASCIIPOS0)
+1:	lbu	$1, 0(a0)
+	beqz	$1, 3f
+	PTR_ADDIU \
+		a0, a0, 1
+2:	sw	$1, 0(v0)
+	PTR_ADDIU \
+		v0, v0, MALTA_ASCIIPOS1 - MALTA_ASCIIPOS0
+	bne	v0, v1, 1b
+
+	/* return */
+	jr	ra
+
+	/* out of line short-string handling */
+3:	li	$1, ' '
+	b	2b
+	.set	pop
+	END(malta_lcd_puts)
