@@ -28,6 +28,7 @@ config TARGET_MALTA
 	select DM_SERIAL
 	select DYNAMIC_IO_PORT_BASE
 	select MIPS_CM
+	select MIPS_CM_IOCU
 	select MIPS_L2_CACHE
 	select OF_CONTROL
 	select OF_ISA_BUS

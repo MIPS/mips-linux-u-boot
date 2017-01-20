@@ -56,6 +56,7 @@
 #define  MALTA_DDR_CTRL_DM2DQS		(1 << 19)
 #define  MALTA_DDR_CTRL_WRBURST_FULL	(1 << 18)
 #define  MALTA_DDR_CTRL_RMW		(1 << 16)
+#define  MALTA_ROCIT_CFG0_PCI_IOCU	(1 << 7)
 
 #define MALTA_FLASH_BASE		0x1e000000
 
