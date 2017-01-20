@@ -23,6 +23,8 @@
 enum core_card {
 	CORE_UNKNOWN,
 	CORE_LV,
+	CORE_FPGA4,
+	CORE_FPGA5,
 	CORE_FPGA6,
 };
 
@@ -44,6 +46,12 @@ static enum core_card malta_core_card(void)
 	case MALTA_REVISION_CORID_CORE_LV:
 		return CORE_LV;
 
+	case MALTA_REVISION_CORID_CORE_FPGA4:
+		return CORE_FPGA4;
+
+	case MALTA_REVISION_CORID_CORE_FPGA5:
+		return CORE_FPGA5;
+
 	case MALTA_REVISION_CORID_CORE_FPGA6:
 		return CORE_FPGA6;
 
@@ -58,7 +66,7 @@ static enum sys_con malta_sys_con(void)
 	case CORE_LV:
 		return SYSCON_GT64120;
 
-	case CORE_FPGA6:
+	case CORE_FPGA4 ... CORE_FPGA6:
 		return SYSCON_MSC01;
 
 	default:
@@ -104,8 +112,8 @@ int checkboard(void)
 		puts(" CoreLV");
 		break;
 
-	case CORE_FPGA6:
-		puts(" CoreFPGA6");
+	case CORE_FPGA4 ... CORE_FPGA6:
+		printf(" CoreFPGA%d", 4 + (core - CORE_FPGA4));
 		break;
 
 	default:

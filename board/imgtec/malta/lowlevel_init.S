@@ -36,6 +36,9 @@
 #define R_NCOL_ADDR	s6
 #define R_RETURN	s7
 
+#define MIN_PERIOD	8
+#define MAX_PERIOD	60
+
 	.text
 
 NESTED(lowlevel_init, 0, ra)
@@ -58,6 +61,10 @@ NESTED(lowlevel_init, 0, ra)
 	beq	R_SYSCON, t1, _gt64120
 
 	/* core cards using the MSC01 system controller */
+	li	t1, MALTA_REVISION_CORID_CORE_FPGA4
+	beq	R_SYSCON, t1, _msc01
+	li	t1, MALTA_REVISION_CORID_CORE_FPGA5
+	beq	R_SYSCON, t1, _msc01
 	li	t1, MALTA_REVISION_CORID_CORE_FPGA6
 	beq	R_SYSCON, t1, _msc01
 
@@ -312,12 +319,14 @@ _msc01:
 	move	R_MEM_TYPE, v0
 
 	/* check if we have DDR or DDR2 */
+	PTR_LA	t2, denali_ddr_regs
 	li	t0, SPD_MEMTYPE_DDR
 	beq	R_MEM_TYPE, t0, 2f
 	li	t0, SPD_MEMTYPE_DDR2
 	beq	R_MEM_TYPE, t0, 2f
 
 	/* check if we have non-DDR SDRAM */
+	PTR_LA	t2, denali_sdr_regs
 	li	t0, SPD_MEMTYPE_SDRAM
 	beq	R_MEM_TYPE, t0, 2f
 
@@ -380,7 +389,381 @@ _msc01:
 	PTR_LI	ta0, CKSEG1ADDR(MALTA_MSC01_CF6_MC_TUNE)
 	sw	v0, 0(ta0)
 
-1:	jr	R_RETURN
+	/* that's all we need to do for CoreFPGA6 :) */
+	jr	R_RETURN
+
+	/* pre-CoreFPGA6, write base register settings */
+1:	PTR_LI	t0, CKSEG1ADDR(MALTA_MSC01_IP1_BASE)
+	move	t1, t0
+	PTR_ADDIU \
+		t3, t2, denali_ddr_regs_end - denali_ddr_regs
+1:	lw	ta0, 0(t2)
+	addiu	t2, t2, 4
+	sw	ta0, 0(t1)
+	addiu	t1, t1, 4
+	bne	t2, t3, 1b
+
+	/* check for DDR_CTRL presence */
+	PTR_LI	t1, CKSEG1ADDR(MALTA_DDR_CTRL)
+	lw	t2, 0(t1)
+	and	t3, t2, MALTA_DDR_CTRL_PRESENT
+	beqz	t3, 3f
+
+	/* set burst length to 2 */
+	lw	t3, (27 * 4)(t0)
+	ori	t3, t3, 0x7
+	xori	t3, t3, 0x6
+	sw	t3, (27 * 4)(t0)
+
+	/* check ECC only bit */
+	and	t3, t2, MALTA_DDR_CTRL_ECCONLY
+	bnez	t3, 1f
+
+	/* no RMW for CPU write bursts */
+	or	t2, t2, MALTA_DDR_CTRL_WRBURST_FULL
+
+	/* check if this DDR has ECC */
+	bltu	R_MEM_TYPE, SPD_MEMTYPE_DDR, 2f
+	li	a0, SPD_CONFIG
+	bal	malta_spd_read
+	li	t3, SPD_CONFIG_ECC
+	bne	v0, t3, 2f
+
+	/* reuse data mask pins as data strobes with ECC DDR */
+1:	or	t2, t2, MALTA_DDR_CTRL_DM2DQS
+
+	/* enable RMW */
+2:	or	t2, t2, MALTA_DDR_CTRL_RMW
+
+	/* update DDR_CTRL register, load acts as a barrier */
+	sw	t2, 0(t1)
+	lw	t2, 0(t1)
+
+	/* mask all interrupts */
+3:	lw	t1, (10 * 4)(t0)
+	or	t1, t1, 0x1f << 16
+	sw	t1, (10 * 4)(t0)
+
+	/* set registered DIMM bit */
+	li	a0, SPD_MOD_ATTR
+	bal	malta_spd_read
+	srl	v0, v0, SPD_MOD_ATTR_REG_SHF
+	andi	v0, v0, 1
+	lw	t1, (2 * 4)(t0)
+	ins	t1, v0, 24, 1
+	sw	t1, (2 * 4)(t0)
+
+	/* find max row & col address bits */
+	lw	t1, (9 * 4)(t0)
+	andi	t2, t1, 0xf
+	srl	t1, t1, 8
+	andi	t1, t1, 0xf
+
+	/* set addr_pins = addrbits_max - nrow_addr */
+	sub	t1, t1, R_NROW_ADDR
+	lw	t3, (5 * 4)(t0)
+	ins	t3, t1, 24, 3
+	sw	t3, (5 * 4)(t0)
+
+	/* set column_size = colbits_max - ncol_addr */
+	sub	t2, t2, R_NCOL_ADDR
+	lw	t3, (6 * 4)(t0)
+	ins	t3, t2, 8, 3
+	sw	t3, (6 * 4)(t0)
+
+	/* Set csmap = (1 << nrows) - 1 */
+	li	t1, 1
+	sllv	t1, t1, R_NROWS
+	addiu	t1, t1, -1
+	lw	t2, (4 * 4)(t0)
+	ins	t2, t1, 24, 2
+	sw	t2, (4 * 4)(t0)
+
+	/* read CAS latency */
+	li	a0, SPD_CAS_LAT
+	bal	malta_spd_read
+
+	/* skip DDR path for non-DDR SDRAM */
+	bltu	R_MEM_TYPE, SPD_MEMTYPE_DDR, 3f
+
+#define HANDLE_CAS(spd_lat, mc_lat, mc_oth)		\
+1:	and	t1, v0, SPD_CAS_LAT_DDR_##spd_lat;	\
+	beqz	t1, 1f;					\
+	li	t2, mc_lat;				\
+	li	t3, mc_oth;				\
+	b	2f
+
+	HANDLE_CAS(1_0, 1, 2)
+	HANDLE_CAS(1_5, 5, 3)
+	HANDLE_CAS(2_0, 2, 4)
+	HANDLE_CAS(2_5, 6, 5)
+	HANDLE_CAS(3_0, 3, 6)
+
+#undef HANDLE_CAS
+
+	/* no valid CAS latency */
+1:	PTR_LA	a0, msg_bad_cas
+	bal	malta_lcd_puts
+1:	wait
+	b	1b
+
+	/* set CAS latency */
+2:	lw	t1, (6 * 4)(t0)
+	ins	t1, t2, 0, 3
+	sw	t1, (6 * 4)(t0)
+
+	/* set CAS things */
+	lw	t1, (10 * 4)(t0)
+	ins	t1, t3, 0, 4
+	ins	t1, t3, 8, 4
+	sw	t1, (10 * 4)(t0)
+
+	/* skip non-DDR path for DDR */
+	b	5f
+
+	/* select CAS latency 2 or 3, preferring 2 */
+3:	and	t1, v0, SPD_CAS_LAT_2
+	li	t2, 2
+	bnez	t1, 4f
+	li	t2, 3
+
+	/* set CAS latency */
+4:	lw	t1, (6 * 4)(t0)
+	ins	t1, t2, 0, 3
+	sw	t1, (6 * 4)(t0)
+
+	/* set CAS things */
+	lw	t1, (10 * 4)(t0)
+	sll	t2, t2, 1
+	ins	t1, t2, 0, 4
+	ins	t1, t2, 8, 4
+	sw	t1, (10 * 4)(t0)
+
+	/* read tRP */
+	li	a0, SPD_TRP
+	bal	malta_spd_read
+	li	t1, MIN_PERIOD
+	divu	v0, t1
+#if __mips_isa_rev < 6
+	mflo	v0
+#endif
+
+	/* clamp tRP >= 2 */
+	bgeu	v0, 2, 1f
+	li	v0, 2
+
+1:	/* set tRP */
+	lw	t1, (9 * 4)(t0)
+	move	t3, v0
+	ins	t1, v0, 24, 4
+	sw	t1, (9 * 4)(t0)
+
+	/* read tRCD */
+	li	a0, SPD_TRCD
+	bal	malta_spd_read
+	li	t1, MIN_PERIOD
+	divu	v0, t1
+#if __mips_isa_rev < 6
+	mflo	v0
+#endif
+
+	/* clamp tRCD >= 2 */
+	bgeu	v0, 2, 1f
+	li	v0, 2
+
+1:	/* set tRCD */
+	lw	t1, (17 * 4)(t0)
+	ins	t1, v0, 24, 8
+	sw	t1, (17 * 4)(t0)
+
+	/* read tRRD */
+	li	a0, SPD_TRRD
+	bal	malta_spd_read
+	li	t1, MIN_PERIOD
+	divu	v0, t1
+#if __mips_isa_rev < 6
+	mflo	v0
+#endif
+
+	/* set tRRD */
+	lw	t1, (7 * 4)(t0)
+	ins	t1, v0, 16, 3
+	sw	t1, (7 * 4)(t0)
+
+	/* read tRAS */
+	li	a0, SPD_TRAS
+	bal	malta_spd_read
+	li	t1, MIN_PERIOD
+	divu	v0, t1
+#if __mips_isa_rev < 6
+	mflo	v0
+#endif
+
+	/* clamp tRAS >= 6 */
+	bgeu	v0, 6, 1f
+	li	v0, 6
+
+1:	/* set tRAS_min */
+	lw	t1, (17 * 4)(t0)
+	addu	t3, t3, v0
+	ins	t1, v0, 16, 8
+	sw	t1, (17 * 4)(t0)
+
+	/* read tRC */
+	li	a0, SPD_TRC
+	bal	malta_spd_read
+	li	t1, MIN_PERIOD
+	divu	v0, t1
+#if __mips_isa_rev < 6
+	mflo	v0
+#endif
+
+	/* clamp tRC >= tRP + tRAS_min */
+	bgeu	v0, t3, 1f
+	move	v0, t3
+
+1:	/* set tRC */
+	lw	t1, (11 * 4)(t0)
+	ins	t1, v0, 8, 5
+	sw	t1, (11 * 4)(t0)
+
+	/* set tRAS_max to 100000ns */
+	li	v0, (100000 + MAX_PERIOD - 1) / MAX_PERIOD
+	lw	t1, (20 * 4)(t0)
+	ins	t1, v0, 0, 16
+	sw	t1, (20 * 4)(t0)
+
+	/* set tWR to 15ns */
+	li	v0, (15 + MIN_PERIOD - 1) / MIN_PERIOD
+	lw	t1, (7 * 4)(t0)
+	ins	t1, v0, 24, 3
+	sw	t1, (7 * 4)(t0)
+
+	/* read refresh rate */
+5:	li	a0, SPD_REFRESH
+	bal	malta_spd_read
+	and	v0, v0, SPD_REFRESH_RATE
+
+#define HANDLE_RATE(spd_rate, mc_rate)			\
+1:	li	t1, SPD_REFRESH_RATE_##spd_rate;	\
+	bne	v0, t1, 1f;				\
+	li	t2, (mc_rate & ~1) / MAX_PERIOD;	\
+	b	2f
+
+	HANDLE_RATE(125, 125000)
+	HANDLE_RATE(62_5, 62500)
+	HANDLE_RATE(31_3, 31300)
+	HANDLE_RATE(15_625, 15625)
+	HANDLE_RATE(7_8, 7800)
+
+#undef HANDLE_RATE
+
+	/* default to 3.9uS */
+1:	li	t2, 3900 / MAX_PERIOD
+
+	/* set Tref */
+2:	lw	t1, (18 * 4)(t0)
+	ins	t1, t2, 8, 12
+	sw	t1, (18 * 4)(t0)
+
+	/* set Tref enable */
+	lw	t1, (4 * 4)(t0)
+	or	t1, t1, 0x1
+	sw	t1, (4 * 4)(t0)
+
+	/* update the user */
+	PTR_LA	a0, msg_mc_en
+	bal	malta_lcd_puts
+
+	/* enable the memory controller */
+	lw	t1, 0xc(t0)
+	or	t1, t1, 1 << 16
+	sw	t1, 0xc(t0)
+
+	/* wait for init complete interrupt */
+1:	lw	t1, 0x28(t0)
+	srl	t1, t1, 24
+	andi	t1, t1, 0x1f
+	beqz	t1, 1b
+
+	/* acknowledge the interrupt */
+	lw	t1, (8 * 4)(t0)
+	or	t1, t1, 0xf << 24
+	sw	t1, (8 * 4)(t0)
+
+	/* unmask interrupts */
+	lw	t1, (10 * 4)(t0)
+	xor	t1, t1, 0x1f << 16
+	sw	t1, (10 * 4)(t0)
+
+	/* disable DDR's DLL - we're running too slowly for it */
+	lw	t1, (28 * 4)(t0)
+	li	t2, 1
+	ins	t1, t2, 16, 14
+	sw	t1, (28 * 4)(t0)
+
+	lw	t1, (4 * 4)(t0)
+	or	t1, t1, 1 << 16
+	sw	t1, (4 * 4)(t0)
+
+	/* delay */
+	li	t1, 0xffff
+1:	addiu	t1, -1
+	bnez	t1, 1b
+
+	/* select a stride - 16 bytes if RMW, otherwise 4 bytes */
+	li	ta0, 4
+	PTR_LI	t1, CKSEG1ADDR(MALTA_DDR_CTRL)
+	and	t1, t1, MALTA_DDR_CTRL_RMW
+	beqz	t1, 1f
+	li	ta0, 16
+
+	/* setup for pattern loops */
+1:	PTR_LI	t1, CKSEG1ADDR(0)
+	li	t2, 0xaa55aa00
+	li	t3, 0xaa55aa15
+	li	v0, 2
+	li	v1, 11
+
+	/* write a pattern at the start of DDR */
+	move	ta1, t1
+	move	ta2, t2
+1:	sw	ta2, 0(ta1)
+	addiu	ta2, ta2, 1
+	addu	ta1, ta1, ta0
+	bleu	ta2, t3, 1b
+
+	/* set the CAS latency */
+1:	lw	ta1, (10 * 4)(t0)
+	ins	ta1, v0, 0, 4
+	ins	ta1, v0, 8, 4
+	sw	ta1, (10 * 4)(t0)
+
+	/* check the pattern */
+	move	ta1, t1
+	move	ta2, t2
+2:	lw	ta3, 0(ta1)
+	bne	ta3, ta2, 3f
+	addiu	ta2, ta2, 1
+	addu	ta1, ta1, ta0
+	bleu	ta2, t3, 2b
+
+	/* pattern read back OK */
+	PTR_LA	a0, msg_mc_ok
+	bal	malta_lcd_puts
+
+	/* return */
+	jr	R_RETURN
+
+3:	/* pattern read incorrectly, next latency */
+	addiu	v0, v0, 1
+	bltu	v0, v1, 1b
+
+	/* pattern read failed for all latencies */
+	PTR_LA	a0, msg_bad_ram
+	bal	malta_lcd_puts
+1:	wait
+	b	1b
 	END(lowlevel_init)
 
 LEAF(malta_lcd_puts)
@@ -449,4 +832,30 @@ LEAF(malta_spd_read)
 
 .data
 
+denali_sdr_regs:
+	.word 0x00000000, 0x00000100, 0x00000000, 0x00000001
+	.word 0x03000101, 0x03020000, 0x00000502, 0x02020000
+	.word 0x00080a01, 0x02040000, 0x00000404, 0x00090602
+	.word 0x0a0a001e, 0x00000a0a, 0x04040000, 0x00000404
+	.word 0x01010000, 0x02040101, 0x000c2d06, 0x00000000
+	.word 0x00062706, 0x00000006, 0x00000014, 0x00000000
+	.word 0x01010101, 0x01010000, 0x00010100, 0x0f0f0002
+	.word 0x00000000, 0x00000000, 0x00000000, 0x00010000
+denali_sdr_regs_end:
+
+denali_ddr_regs:
+	.word 0x01000000, 0x01000100, 0x00000001, 0x01000000
+	.word 0x03000101, 0x02020000, 0x00000403, 0x02010000
+	.word 0x00020a01, 0x02040000, 0x00000606, 0x00090602
+	.word 0x2020001e, 0x00002020, 0x0b0b0000, 0x00000b0b
+	.word 0x01010000, 0x02040101, 0x00030507, 0x00c80000
+	.word 0x00c80618, 0x000000c8, 0x00000014, 0x00000000
+	.word 0x01010101, 0x01010000, 0x00010100, 0x0f0f0002
+	.word 0x00000000, 0x00000000, 0x00000000, 0x00000000
+denali_ddr_regs_end:
+
 msg_mem_type:	.asciiz "Mem Type"
+msg_bad_cas:	.asciiz "Bad CAS"
+msg_bad_ram:	.asciiz "Bad RAM"
+msg_mc_en:	.asciiz "MC Start"
+msg_mc_ok:	.asciiz "MC OK"
