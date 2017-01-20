@@ -13,6 +13,7 @@
 #include <netdev.h>
 #include <asm/io.h>
 #include <pci.h>
+#include <dm/device.h>
 
 #define	PCNET_DEBUG_LEVEL	0	/* 0=off, 1=init, 2=rx/tx */
 
@@ -343,13 +344,14 @@ static int pcnet_init(struct eth_device *dev, bd_t *bis)
 
 		addr = (unsigned long)memalign(ARCH_DMA_MINALIGN,
 					       sizeof(*lp->uc));
-		flush_dcache_range(addr, addr + sizeof(*lp->uc));
-		addr = UNCACHED_SDRAM(addr);
+		dev_dma_cache_writeback(NULL, addr, addr + sizeof(*lp->uc));
+		if (!dev_dma_coherent(NULL))
+			addr = UNCACHED_SDRAM(addr);
 		lp->uc = (struct pcnet_uncached_priv *)addr;
 
 		addr = (unsigned long)memalign(ARCH_DMA_MINALIGN,
 					       sizeof(*lp->rx_buf));
-		flush_dcache_range(addr, addr + sizeof(*lp->rx_buf));
+		dev_dma_cache_writeback(NULL, addr, addr + sizeof(*lp->rx_buf));
 		lp->rx_buf = (void *)addr;
 	}
 
@@ -445,8 +447,8 @@ static int pcnet_send(struct eth_device *dev, void *packet, int pkt_len)
 	PCNET_DEBUG2("Tx%d: %d bytes from 0x%p ", lp->cur_tx, pkt_len,
 		     packet);
 
-	flush_dcache_range((unsigned long)packet,
-			   (unsigned long)packet + pkt_len);
+	dev_dma_cache_writeback(NULL, (unsigned long)packet,
+				(unsigned long)packet + pkt_len);
 
 	/*
 	 * Setup Tx ring. Caution: the write order is important here,
@@ -520,8 +522,8 @@ static int pcnet_recv (struct eth_device *dev)
 				       dev->name, lp->cur_rx, pkt_len);
 			} else {
 				buf = (*lp->rx_buf)[lp->cur_rx];
-				invalidate_dcache_range((unsigned long)buf,
-					(unsigned long)buf + pkt_len);
+				dev_dma_cache_invalidate(NULL, (unsigned long)buf,
+							 (unsigned long)buf + pkt_len);
 				net_process_received_packet(buf, pkt_len);
 				PCNET_DEBUG2("Rx%d: %d bytes from 0x%p\n",
 					     lp->cur_rx, pkt_len, buf);
