@@ -39,6 +39,7 @@
 	.macro init_wr sel
 	MTC0	zero, CP0_WATCHLO,\sel
 	mtc0	t1, CP0_WATCHHI,\sel
+	ehb
 	mfc0	t0, CP0_WATCHHI,\sel
 	bgez	t0, wr_done
 	 nop
