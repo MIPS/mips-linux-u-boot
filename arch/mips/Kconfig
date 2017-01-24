@@ -392,6 +392,12 @@ config MIPS_CM_BASE
 	  the GCRs occupy a region of the physical address space which is
 	  otherwise unused, or at minimum that software doesn't need to access.
 
+config MIPS_UHI
+	bool "MIPS Unified Hosting Interface (UHI) Support"
+	help
+	  Include support for the MIPS Unified Hosting Interface (UHI),
+	  allowing the user to run programs that use UHI atop U-Boot.
+
 endif
 
 endmenu
