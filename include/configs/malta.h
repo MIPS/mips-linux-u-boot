@@ -115,6 +115,13 @@ extern unsigned int malta_timer_hz;
 #define CONFIG_SYS_ATA_REG_OFFSET	0
 
 /*
+ * Disk Partition Support
+ */
+#define CONFIG_DOS_PARTITION
+#define CONFIG_PARTITION_UUIDS
+#define CONFIG_CMD_PART
+
+/*
  * Commands
  */
 #define CONFIG_CMD_DATE
