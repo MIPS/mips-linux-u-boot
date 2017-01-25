@@ -69,4 +69,9 @@
 	(0xb8000000 + (128 << 20) - CONFIG_ENV_SIZE)
 #endif
 
+/*
+ * Miscellaneous
+ */
+#define CONFIG_MISC_INIT_R
+
 #endif /* __CONFIGS_BOSTON_H__ */
