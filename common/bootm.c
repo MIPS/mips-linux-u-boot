@@ -108,6 +108,10 @@ static int bootm_find_os(cmd_tbl_t *cmdtp, int flag, int argc,
 		images.os.end = image_get_image_end(os_hdr);
 		images.os.load = image_get_load(os_hdr);
 		images.os.arch = image_get_arch(os_hdr);
+
+#if defined(CONFIG_MIPS) && defined(CONFIG_64BIT)
+		images.os.load = (s32)images.os.load;
+#endif
 		break;
 #endif
 #if IMAGE_ENABLE_FIT
@@ -182,6 +186,9 @@ static int bootm_find_os(cmd_tbl_t *cmdtp, int flag, int argc,
 		/* Kernel entry point is the setup.bin */
 	} else if (images.legacy_hdr_valid) {
 		images.ep = image_get_ep(&images.legacy_hdr_os_copy);
+#if defined(CONFIG_MIPS) && defined(CONFIG_64BIT)
+		images.ep = (s32)images.ep;
+#endif
 #if IMAGE_ENABLE_FIT
 	} else if (images.fit_uname_os) {
 		int ret;
