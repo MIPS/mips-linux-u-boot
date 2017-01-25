@@ -101,6 +101,11 @@
 #define CONFIG_PHY_REALTEK
 
 /*
+ * Miscellaneous
+ */
+#define CONFIG_MISC_INIT_R
+
+/*
  * LCD Display
  */
 #define CONFIG_CMD_DISPLAY
