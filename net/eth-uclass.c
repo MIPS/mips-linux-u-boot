@@ -372,6 +372,8 @@ int eth_rx(void)
 			eth_get_ops(current)->free_pkt(current, packet, ret);
 		if (ret <= 0)
 			break;
+		if (net_state == NETLOOP_FAIL)
+			break;
 	}
 	if (ret == -EAGAIN)
 		ret = 0;
