@@ -1257,6 +1257,11 @@ int fit_check_format(const void *fit)
 	return 1;
 }
 
+__attribute__((weak))
+const void *get_best_fit_compat(const void *fdt, int *lenp)
+{
+	return fdt_getprop(fdt, 0, "compatible", lenp);
+}
 
 /**
  * fit_conf_find_compat
@@ -1313,7 +1318,7 @@ int fit_conf_find_compat(const void *fit, const void *fdt)
 		return -1;
 	}
 
-	fdt_compat = fdt_getprop(fdt, 0, "compatible", &fdt_compat_len);
+	fdt_compat = get_best_fit_compat(fdt, &fdt_compat_len);
 	if (!fdt_compat) {
 		debug("Fdt for comparison has no \"compatible\" property.\n");
 		return -1;
