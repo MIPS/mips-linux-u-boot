@@ -10,6 +10,17 @@
 #include <asm/cm.h>
 #include "boston-regs.h"
 
+static const struct mmio_region mmio_regions[] = {
+	{ 0x10000000, 0x160f0000, .enable = 1 },
+	{ 0x17ff0000, 0x17ff0000, .enable = 1 },
+	{ 0 },
+};
+
+const struct mmio_region *get_mmio_regions(void)
+{
+	return mmio_regions;
+}
+
 bool plat_iocu_usable(unsigned int cluster, unsigned int iocu)
 {
 	u32 buildcfg = readl((u32 *)BOSTON_PLAT_BUILDCFG0);

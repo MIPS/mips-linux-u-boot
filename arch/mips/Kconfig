@@ -405,6 +405,7 @@ config MIPS_CM_IOCU
 config MIPS_CM_MMIO_LIMIT
 	hex
 	depends on MIPS_CM
+	default 4 if TARGET_BOSTON
 	default 1
 	help
 	  Limit the number of simultaneously outstanding MMIO requests
