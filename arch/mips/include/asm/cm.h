@@ -30,6 +30,16 @@
 #define  GCR_L2SM_COP_RUNNING		(0x1 << 5)
 #define  GCR_L2SM_COP_TYPE_STORE_TAG	(0x1 << 2)
 #define  GCR_L2SM_COP_CMD_START		(0x1 << 0)
+#define GCR_MMIO_REQ_LIMIT		0x06f8
+#define GCR_MMIO0_BOTTOM		0x0700
+#define  GCR_MMIO0_BOTTOM_ADDR		(0xffffffffull << 16)
+#define  GCR_MMIO0_BOTTOM_PORT_SHIFT	2
+#define  GCR_MMIO0_BOTTOM_PORT		(0xf << 2)
+#define  GCR_MMIO0_BOTTOM_DISABLE_LIMIT	(0x1 << 1)
+#define  GCR_MMIO0_BOTTOM_ENABLE	(0x1 << 0)
+#define GCR_MMIO0_TOP			0x0708
+#define  GCR_MMIO0_TOP_ADDR		(0xffffffffull << 16)
+#define GCR_MMIO1_BOTTOM		0x0710
 #define GCR_Cx_COHERENCE		0x2008
 #define GCR_Cx_REDIRECT			0x2018
 #define GCR_Cx_ID			0x2028
@@ -146,6 +156,15 @@ static inline unsigned int mips_cm_num_clusters(void)
 
 	return cfg;
 }
+
+struct mmio_region {
+	phys_addr_t addr_low;
+	phys_addr_t addr_high;
+	unsigned int port : 4;
+	unsigned int enable : 1;
+};
+
+extern const struct mmio_region *get_mmio_regions(void);
 
 extern void setup_redirect(unsigned int cluster, unsigned int core,
 			   unsigned int vp, unsigned int block);

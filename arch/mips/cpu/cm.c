@@ -49,6 +49,11 @@ static void mips_cpc_init(void)
 	sync();
 }
 
+__weak const struct mmio_region *get_mmio_regions(void)
+{
+	return NULL;
+}
+
 static void setup_mmio_limits(void)
 {
 	DECLARE_GLOBAL_DATA_PTR;
@@ -68,7 +73,7 @@ static void setup_mmio_limits(void)
 		for (i = 0; rgn[i].addr_high; i++) {
 			if (!rgn[i].enable)
 				tgt = 0x0; /* disabled */
-			else if (gd->arch.num_iocus > 0)
+			else if (gd->arch.num_iocus_usable > 0)
 				tgt = 0x2; /* IOCU 0 */
 			else
 				tgt = 0x1; /* memory */
@@ -217,6 +222,8 @@ int mips_cm_init(void)
 		if (err)
 			return err;
 	}
+
+	setup_mmio_limits();
 
 	return 0;
 }
