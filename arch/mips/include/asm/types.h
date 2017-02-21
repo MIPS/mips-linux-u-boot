@@ -7,6 +7,8 @@
 #ifndef _ASM_TYPES_H
 #define _ASM_TYPES_H
 
+#include <asm-generic/bitsperlong.h>
+
 #ifndef __ASSEMBLY__
 
 typedef unsigned short umode_t;
