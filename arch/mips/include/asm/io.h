@@ -111,6 +111,9 @@ static inline unsigned long virt_to_phys(volatile const void *address)
  */
 static inline void *phys_to_virt(unsigned long address)
 {
+	if (address <= CPHYSADDR(~0))
+		return (void *)CKSEG0ADDR(address);
+
 	return (void *)(address + PAGE_OFFSET - PHYS_OFFSET);
 }
 #define phys_to_virt phys_to_virt
