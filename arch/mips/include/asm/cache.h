@@ -7,6 +7,10 @@
 #ifndef __MIPS_CACHE_H__
 #define __MIPS_CACHE_H__
 
+#ifndef CONFIG_SYS_MIPS_CACHE_MODE
+#define CONFIG_SYS_MIPS_CACHE_MODE CONF_CM_CACHABLE_NONCOHERENT
+#endif
+
 #define L1_CACHE_SHIFT		CONFIG_MIPS_L1_CACHE_SHIFT
 #define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
 
@@ -28,6 +32,8 @@
  * functions such as flush_cache may be called.
  */
 void mips_cache_probe(void);
+
+extern void __kseg0_cache_disable(void);
 #endif
 
 #endif /* __MIPS_CACHE_H__ */

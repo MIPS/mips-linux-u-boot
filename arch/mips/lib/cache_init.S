@@ -12,12 +12,9 @@
 #include <asm/regdef.h>
 #include <asm/mipsregs.h>
 #include <asm/addrspace.h>
+#include <asm/cache.h>
 #include <asm/cacheops.h>
 #include <asm/cm.h>
-
-#ifndef CONFIG_SYS_MIPS_CACHE_MODE
-#define CONFIG_SYS_MIPS_CACHE_MODE CONF_CM_CACHABLE_NONCOHERENT
-#endif
 
 #define INDEX_BASE	CKSEG0
 
@@ -418,48 +415,131 @@ return:
 	jr	ra
 	END(mips_cache_reset)
 
-/*
- * dcache_status - get cache status
+/**
+ * __kseg0_cache_disable() - Disable caching for kseg0
  *
- * RETURNS: 0 - cache disabled; 1 - cache enabled
- *
+ * Disables caching for (c)kseg0 using Config.K0, and ensuring that cache
+ * content is written back to memory in order to allow uncached execution to
+ * continue without losing data.
  */
-LEAF(dcache_status)
+#undef R_DC_SIZE
+#undef R_DC_LINE
+#undef R_L2_SIZE
+#undef R_L2_LINE
+#define R_DC_SIZE	ta0
+#define R_DC_LINE	ta1
+#define R_L2_SIZE	ta2
+#define R_L2_LINE	ta3
+LEAF(__kseg0_cache_disable)
+	/* Set Config.K0 to uncached (ie. 2) */
 	mfc0	t0, CP0_CONFIG
-	li	t1, CONF_CM_UNCACHED
-	andi	t0, t0, CONF_CM_CMASK
-	move	v0, zero
-	beq	t0, t1, 2f
-	li	v0, 1
-2:	jr	ra
-	END(dcache_status)
-
-/*
- * dcache_disable - disable cache
- *
- * RETURNS: N/A
- *
- */
-LEAF(dcache_disable)
-	mfc0	t0, CP0_CONFIG
-	li	t1, -8
-	and	t0, t0, t1
-	ori	t0, t0, CONF_CM_UNCACHED
+	or	t0, t0, CONF_CM_CMASK
+	xor	t0, t0, CONF_CM_CMASK ^ CONF_CM_UNCACHED
 	mtc0	t0, CP0_CONFIG
-	jr	ra
-	END(dcache_disable)
 
-/*
- * dcache_enable - enable cache
- *
- * RETURNS: N/A
- *
- */
-LEAF(dcache_enable)
-	mfc0	t0, CP0_CONFIG
-	ori	t0, CONF_CM_CMASK
-	xori	t0, CONF_CM_CMASK
-	ori	t0, CONFIG_SYS_MIPS_CACHE_MODE
-	mtc0	t0, CP0_CONFIG
-	jr	ra
-	END(dcache_enable)
+#ifndef CONFIG_SYS_CACHE_SIZE_AUTO
+	li	R_DC_SIZE, CONFIG_SYS_DCACHE_SIZE
+	li	R_DC_LINE, CONFIG_SYS_DCACHE_LINE_SIZE
+#else
+	l1_info	R_DC_SIZE, R_DC_LINE, MIPS_CONF1_DA_SHF
+#endif
+
+	/*
+	 * Writeback & invalidate the entire L1 data cache.
+	 */
+	blez		R_DC_SIZE, 3f
+	PTR_LI		t0, INDEX_BASE
+	PTR_ADDU	t1, t0, R_DC_SIZE
+	cache_loop	t0, t1, R_DC_LINE, INDEX_WRITEBACK_INV_D
+	sync
+
+#ifdef CONFIG_MIPS_L2_CACHE
+	move	R_L2_SIZE, zero
+	move	R_L2_LINE, zero
+
+	/*
+	 * For there to be an L2 present, Config2 must be present. If it isn't
+	 * then we proceed knowing there's no L2 cache. From MIPSr2 onwards we
+	 * can presume that Config2 is present due to architecturally required
+	 * bits in later Config registers.
+	 */
+# if __mips_isa_rev < 2
+	mfc0	t0, CP0_CONFIG, 1
+	bgez	t0, 2f
+# endif
+
+	/*
+	 * From MIPSr6 onwards the L2 cache configuration might not be reported
+	 * by Config2. The Config5.L2C bit indicates whether this is the case,
+	 * and if it is then we need knowledge of where else to look. For cores
+	 * from Imagination Technologies this is a CM GCR.
+	 */
+# if __mips_isa_rev >= 6
+	/* Check Config5.L2C is set */
+	mfc0	t0, CP0_CONFIG, 5
+	and	t0, t0, MIPS_CONF5_L2C
+	beqz	t0, 1f
+
+	/* Config5.L2C is set */
+#  ifdef CONFIG_MIPS_CM
+	/* The CM will provide L2 configuration */
+	PTR_LI	t0, CKSEG1ADDR(CONFIG_MIPS_CM_BASE)
+	lw	t1, GCR_L2_CONFIG(t0)
+	bgez	t1, 2f
+
+	ext	R_L2_LINE, t1, \
+		GCR_L2_CONFIG_LINESZ_SHIFT, GCR_L2_CONFIG_LINESZ_BITS
+	beqz	R_L2_LINE, 2f
+	li	t2, 2
+	sllv	R_L2_LINE, t2, R_L2_LINE
+
+	ext	t2, t1, GCR_L2_CONFIG_ASSOC_SHIFT, GCR_L2_CONFIG_ASSOC_BITS
+	addiu	t2, t2, 1
+	mul	R_L2_SIZE, R_L2_LINE, t2
+
+	ext	t2, t1, GCR_L2_CONFIG_SETSZ_SHIFT, GCR_L2_CONFIG_SETSZ_BITS
+	sllv	R_L2_SIZE, R_L2_SIZE, t2
+	li	t2, 64
+	mul	R_L2_SIZE, R_L2_SIZE, t2
+#  else
+	/* We don't know how to retrieve L2 configuration on this system */
+#  endif
+	b	2f
+# endif
+
+	/*
+	 * For pre-r6 systems, or r6 systems with Config5.L2C==0, probe the L2
+	 * cache configuration from the cop0 Config2 register.
+	 */
+1:	mfc0	t0, CP0_CONFIG, 2
+
+	srl	R_L2_LINE, t0, MIPS_CONF2_SL_SHF
+	andi	R_L2_LINE, R_L2_LINE, MIPS_CONF2_SL >> MIPS_CONF2_SL_SHF
+	beqz	R_L2_LINE, 2f
+	li	t1, 2
+	sllv	R_L2_LINE, t1, R_L2_LINE
+
+	srl	t1, t0, MIPS_CONF2_SA_SHF
+	andi	t1, t1, MIPS_CONF2_SA >> MIPS_CONF2_SA_SHF
+	addiu	t1, t1, 1
+	mul	R_L2_SIZE, R_L2_LINE, t1
+
+	srl	t1, t0, MIPS_CONF2_SS_SHF
+	andi	t1, t1, MIPS_CONF2_SS >> MIPS_CONF2_SS_SHF
+	sllv	R_L2_SIZE, R_L2_SIZE, t1
+	li	t1, 64
+	mul	R_L2_SIZE, R_L2_SIZE, t1
+
+	/*
+	 * Writeback & invalidate the entire L2 cache.
+	 */
+2:	blez		R_L2_SIZE, 3f
+	PTR_LI		t0, INDEX_BASE
+	PTR_ADDU	t1, t0, R_L2_SIZE
+	cache_loop	t0, t1, R_L2_LINE, INDEX_WRITEBACK_INV_SD
+	sync
+#endif
+
+	/* Return, clearing any execution or instruction hazard */
+3:	jr.hb	ra
+	END(__kseg0_cache_disable)
