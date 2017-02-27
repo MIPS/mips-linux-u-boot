@@ -109,6 +109,7 @@
  * Miscellaneous
  */
 #define CONFIG_MISC_INIT_R
+#define CONFIG_UPDATE_TFTP
 
 /*
  * LCD Display
