@@ -131,4 +131,6 @@ extern unsigned int malta_timer_hz;
 
 #define CONFIG_SYS_LONGHELP		/* verbose help, undef to save memory */
 
+#define CONFIG_UPDATE_TFTP
+
 #endif /* _MALTA_CONFIG_H */
