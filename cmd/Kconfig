@@ -777,6 +777,13 @@ config CMD_UBI
 	  (www.linux-mtd.infradead.org). Activate this option if you want
 	  to use U-Boot UBI commands.
 
+config CMD_FITUPD
+	bool "fitupd command support"
+	help
+	  Enable support for the fitupd command, allowing a system to be updated
+	  using a suitably prepared FIT image. See doc/uImage.FIT/update_uboot.its
+	  for an example.
+
 source "arch/mips/cmd/Kconfig"
 
 endmenu
