@@ -42,7 +42,8 @@ struct xilinx_pcie {
  */
 static bool pcie_xilinx_link_up(struct xilinx_pcie *pcie)
 {
-	uint32_t pscr = __raw_readl(pcie->cfg_base + XILINX_PCIE_REG_PSCR);
+	//uint32_t pscr = __raw_readl(pcie->cfg_base + XILINX_PCIE_REG_PSCR);
+	uint32_t pscr = readl(pcie->cfg_base + XILINX_PCIE_REG_PSCR);
 
 	return pscr & XILINX_PCIE_REG_PSCR_LNKUP;
 }
@@ -121,13 +122,16 @@ static int pcie_xilinx_read_config(struct udevice *bus, pci_dev_t bdf,
 
 	switch (size) {
 	case PCI_SIZE_8:
-		*valuep = __raw_readb(address);
+		//*valuep = __raw_readb(address);
+		*valuep = readb(address); //for big endian system
 		return 0;
 	case PCI_SIZE_16:
-		*valuep = __raw_readw(address);
+		//*valuep = __raw_readw(address);
+		*valuep = readw(address);
 		return 0;
 	case PCI_SIZE_32:
-		*valuep = __raw_readl(address);
+		//*valuep = __raw_readl(address);
+		*valuep = readl(address);
 		return 0;
 	default:
 		return -EINVAL;
@@ -171,13 +175,16 @@ static int pcie_xilinx_write_config(struct udevice *bus, pci_dev_t bdf,
 
 	switch (size) {
 	case PCI_SIZE_8:
-		__raw_writeb(value, address);
+		//__raw_writeb(value, address);
+		writeb(value, address);		//for big endian system
 		return 0;
 	case PCI_SIZE_16:
-		__raw_writew(value, address);
+		//__raw_writew(value, address);
+		writew(value, address);
 		return 0;
 	case PCI_SIZE_32:
-		__raw_writel(value, address);
+		//__raw_writel(value, address);
+		writel(value, address);
 		return 0;
 	default:
 		return -EINVAL;

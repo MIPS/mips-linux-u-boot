@@ -126,8 +126,8 @@ static void pch_gbe_rx_descs_init(struct udevice *dev)
 
 	memset(rx_desc, 0, sizeof(struct pch_gbe_rx_desc) * PCH_GBE_DESC_NUM);
 	for (i = 0; i < PCH_GBE_DESC_NUM; i++)
-		rx_desc[i].buffer_addr = dm_pci_virt_to_mem(priv->dev,
-			priv->rx_buff[i]);
+		rx_desc[i].buffer_addr = le32_to_cpu (dm_pci_virt_to_mem(priv->dev,
+			priv->rx_buff[i]) );
 
 	dev_dma_cache_writeback(dev, (ulong)rx_desc, (ulong)&rx_desc[PCH_GBE_DESC_NUM]);
 
@@ -266,12 +266,12 @@ static int pch_gbe_send(struct udevice *dev, void *packet, int length)
 	if (length < 64)
 		frame_ctrl |= PCH_GBE_TXD_CTRL_APAD;
 
-	tx_desc->buffer_addr = dm_pci_virt_to_mem(priv->dev, packet);
-	tx_desc->length = length;
-	tx_desc->tx_words_eob = length + 3;
-	tx_desc->tx_frame_ctrl = frame_ctrl;
-	tx_desc->dma_status = 0;
-	tx_desc->gbec_status = 0;
+	tx_desc->buffer_addr = cpu_to_le32 (dm_pci_virt_to_mem(priv->dev, packet));
+	tx_desc->length =  cpu_to_le16 (length);
+	tx_desc->tx_words_eob =  cpu_to_le16 (length + 3);
+	tx_desc->tx_frame_ctrl =  cpu_to_le16 (frame_ctrl);
+	tx_desc->dma_status =   0;
+	tx_desc->gbec_status =  cpu_to_le16 (0);
 
 	dev_dma_cache_writeback(dev, (ulong)tx_desc, (ulong)&tx_desc[1]);
 
@@ -315,8 +315,8 @@ static int pch_gbe_recv(struct udevice *dev, int flags, uchar **packetp)
 	/* Invalidate the descriptor */
 	dev_dma_cache_invalidate(dev, (ulong)rx_desc, (ulong)&rx_desc[1]);
 
-	length = rx_desc->rx_words_eob - 3 - ETH_FCS_LEN;
-	buffer = dm_pci_mem_to_virt(priv->dev, rx_desc->buffer_addr, length, 0);
+	length = le16_to_cpu (rx_desc->rx_words_eob) - 3 - ETH_FCS_LEN;
+	buffer = dm_pci_mem_to_virt(priv->dev, le32_to_cpu(rx_desc->buffer_addr), length, 0);
 	dev_dma_cache_invalidate(dev, (ulong)buffer, (ulong)buffer + length);
 	*packetp = (uchar *)buffer;
 
@@ -473,13 +473,13 @@ int pch_gbe_probe(struct udevice *dev)
 	priv->bus = miiphy_get_dev_by_name(dev->name);
 
 	err = pch_gbe_reset(dev);
-	if (err)
+	if (err){
 		goto out_err;
-
+	}
 	err = pch_gbe_phy_init(dev);
-	if (err)
+	if (err){
 		goto out_err;
-
+	}
 	return 0;
 out_err:
 	if (dm_gpio_is_valid(&priv->gpio_phy_reset))

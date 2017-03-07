@@ -14,7 +14,7 @@
 
 phys_size_t initdram(int board_type)
 {
-	u32 ddrconf0 = __raw_readl((uint32_t *)BOSTON_PLAT_DDRCONF0);
+	u32 ddrconf0 = readl((uint32_t *)BOSTON_PLAT_DDRCONF0);
 	struct mips_maar_cfg maar_cfg[] = {
 		{ 0x00000000ull, 0x0fffffffull, MIPS_MAAR_S | MIPS_MAAR_V },
 		{ 0x80000000ull, 0xffffffffull, MIPS_MAAR_S | MIPS_MAAR_V },

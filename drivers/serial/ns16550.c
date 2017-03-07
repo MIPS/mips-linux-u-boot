@@ -65,8 +65,6 @@ static inline void serial_out_shift(void *addr, int shift, int value)
 	out_be32(addr, value);
 #elif defined(CONFIG_SYS_NS16550_MEM32)
 	writel(value, addr);
-#elif defined(CONFIG_SYS_BIG_ENDIAN)
-	writeb(value, addr + (1 << shift) - 1);
 #else
 	writeb(value, addr);
 #endif
@@ -82,8 +80,6 @@ static inline int serial_in_shift(void *addr, int shift)
 	return in_be32(addr);
 #elif defined(CONFIG_SYS_NS16550_MEM32)
 	return readl(addr);
-#elif defined(CONFIG_SYS_BIG_ENDIAN)
-	return readb(addr + (1 << shift) - 1);
 #else
 	return readb(addr);
 #endif

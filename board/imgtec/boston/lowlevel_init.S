@@ -16,6 +16,30 @@
 
 #define DEV_CFG	(1 << XLNX_PCIE_CFG_BUS_SHIFT)
 
+/*
+#define dconv_endian(reg) \
+	dsbh reg,reg; \
+	dshd reg, reg;
+
+#define wconv_endian(reg) \
+	wsbh reg,reg; \
+	rotr reg, reg, 16;
+*/
+
+#if defined(__MIPSEB__)
+#define swap_64(reg) \
+			dsbh reg,reg; \
+			dshd reg, reg;
+
+#define swap_32(reg) \
+			wsbh reg,reg; \
+			rotr reg, reg, 16;
+#else
+#define	swap_64(reg)	nop	
+#define swap_32(reg)	nop
+#endif
+
+
 .data
 
 msg_ddr_cal:	.ascii "DDR Cal "
@@ -55,6 +79,8 @@ LEAF(lowlevel_init)
 
 	PTR_LI	t0, BOSTON_PLAT_DDR3STAT
 1:	lw	t1, 0(t0)
+	swap_32(t1)
+#	wconv_endian(t1)
 	andi	t1, t1, BOSTON_PLAT_DDR3STAT_CALIB
 	beqz	t1, 1b
 
@@ -103,11 +129,17 @@ LEAF(lowlevel_display)
 	PTR_LI	AT, BOSTON_LCD_BASE
 #ifdef CONFIG_64BIT
 	ld	k1, 0(a0)
+	swap_64(k1)
+#	dconv_endian(k1)
 	sd	k1, 0(AT)
 #else
 	lw	k1, 0(a0)
+#	wconv_endian(t1)
+	swap_32(k1)
 	sw	k1, 0(AT)
 	lw	k1, 4(a0)
+	swap_32(k1)
+#	wconv_endian(t1)
 	sw	k1, 4(AT)
 #endif
 	.set	pop

@@ -18,7 +18,7 @@ ulong cpu_mips_rtl_changelist(struct udevice *dev)
 	ulong cl, cl_hex, digit;
 	int nibble, i;
 
-	cl_hex = __raw_readl((uint32_t *)BOSTON_PLAT_CORE_CL);
+	cl_hex = readl((uint32_t *)BOSTON_PLAT_CORE_CL);
 
 	/*
 	 * For some bizarre reason the register contains the changelist when a

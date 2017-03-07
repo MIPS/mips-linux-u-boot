@@ -99,6 +99,7 @@ config TARGET_BOSTON
 	select SUPPORTS_CPU_MIPS64_R2
 	select SUPPORTS_CPU_MIPS64_R6
 	select ROM_EXCEPTION_VECTORS
+	select SWAP_IO_SPACE
 
 config TARGET_XILFPGA
 	bool "Support Imagination Xilfpga"

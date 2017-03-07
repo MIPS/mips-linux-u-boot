@@ -8,6 +8,23 @@
 
 #include <asm/types.h>
 
+#ifdef __ASSEMBLY__
+
+#if defined(__MIPSEB__)
+#define swap_64(reg) \
+		dsbh reg,reg; \
+		dshd reg, reg;
+
+#define swap_32(reg) \
+		wsbh reg,reg; \
+		rotr reg, reg, 16;
+#else
+#define	swap_64(reg)	(reg)
+#define swap_32(reg)	(reg)
+#endif
+
+#endif /*ASSEMBLY*/
+
 #ifdef __GNUC__
 
 #ifdef CONFIG_CPU_MIPSR2
