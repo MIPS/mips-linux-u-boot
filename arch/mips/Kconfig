@@ -398,6 +398,7 @@ config MIPS_DEV_BOARD_DEFAULTS
 	select DISTRO_DEFAULTS
 	select CMD_CACHE
 	select CMD_COP
+	select CMD_ENDIAN
 	select CMD_CPU
 	select CMD_FITUPD
 	select CPU

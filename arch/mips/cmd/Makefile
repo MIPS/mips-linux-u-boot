@@ -3,3 +3,4 @@
 #
 
 obj-$(CONFIG_CMD_COP)		+= cop.o
+obj-$(CONFIG_CMD_ENDIAN)	+= endian.o

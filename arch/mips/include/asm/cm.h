@@ -13,6 +13,7 @@
 #define GCR_BASE_UPPER			0x000c
 #define GCR_REV				0x0030
 #define GCR_L2_CONFIG			0x0130
+#define GCR_SYS_CONFIG			0x0140
 #define GCR_L2_TAG_ADDR			0x0600
 #define GCR_L2_TAG_ADDR_UPPER		0x0604
 #define GCR_L2_TAG_STATE		0x0608
@@ -36,6 +37,12 @@
 /* GCR_Cx_COHERENCE */
 #define GCR_Cx_COHERENCE_DOM_EN		(0xff << 0)
 #define GCR_Cx_COHERENCE_EN		(0x1 << 0)
+
+#define CPC_CONFIG			0x138
+#define CPC_SYS_CONFIG			0x140
+
+#define CPC_Cx_CMD			0x0000
+#define  CPC_Cx_CMD_RESET		0x4
 
 #ifndef __ASSEMBLY__
 
