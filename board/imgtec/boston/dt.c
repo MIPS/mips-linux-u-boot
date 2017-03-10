@@ -33,7 +33,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 	const fdt32_t *reg;
 	fdt32_t prop_val;
 
-	build_cfg = __raw_readl((u32 *)BOSTON_PLAT_BUILDCFG0);
+	build_cfg = readl((u32 *)BOSTON_PLAT_BUILDCFG0);
 
 	off = fdt_node_offset_by_compatible(blob, -1, "xlnx,axi-pcie-host-1.00.a");
 	while (off != -FDT_ERR_NOTFOUND) {
@@ -45,7 +45,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 			phys = fdt_translate_address(blob, off, reg);
 			switch (phys) {
 			case 0x10000000: /* PCIe0 */
-				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE0ADDR);
+				upper = readl((u32 *)BOSTON_PLAT_NOCPCIE0ADDR);
 
 				if (detect_sleipnir())
 					enabled = false;
@@ -54,12 +54,12 @@ int ft_board_setup(void *blob, bd_t *bd)
 				break;
 
 			case 0x12000000: /* PCIe1 */
-				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE1ADDR);
+				upper = readl((u32 *)BOSTON_PLAT_NOCPCIE1ADDR);
 				enabled = build_cfg & BOSTON_PLAT_BUILDCFG0_PCIE1;
 				break;
 
 			case 0x14000000: /* PCIe2 */
-				upper = __raw_readl((u32 *)BOSTON_PLAT_NOCPCIE2ADDR);
+				upper = readl((u32 *)BOSTON_PLAT_NOCPCIE2ADDR);
 				enabled = build_cfg & BOSTON_PLAT_BUILDCFG0_PCIE2;
 				break;
 
