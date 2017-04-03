@@ -47,6 +47,8 @@
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_BAUDRATE			115200
 
+#define CONFIG_BOOTP_GATEWAY
+
 /*
  * Flash
  */
