@@ -114,26 +114,32 @@ ENTRY(_start)
 	 */
 	.org 0x200
 	/* TLB refill, 32 bit task */
+	hwtrigger
 	uhi_mips_exception
 
 	.org 0x280
 	/* XTLB refill, 64 bit task */
+	hwtrigger
 	uhi_mips_exception
 
 	.org 0x300
 	/* Cache error exception */
+	hwtrigger
 	uhi_mips_exception
 
 	.org 0x380
 	/* General exception */
+	hwtrigger
 	uhi_mips_exception
 
 	.org 0x400
 	/* Catch interrupt exceptions */
+	hwtrigger
 	uhi_mips_exception
 
 	.org 0x480
 	/* EJTAG debug exception */
+	hwtrigger
 1:	b	1b
 	 nop
 

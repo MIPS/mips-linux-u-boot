@@ -186,9 +186,19 @@
 NESTED(except_vec3_generic, 0, sp)
 	SAVE_KERN
 
+	.set	push
+	.set	at=k1
+	mfc0	k1, CP0_CAUSE
+	srl	k1, k1, CAUSEB_EXCCODE
+	and	k1, k1, CAUSEF_EXCCODE >> CAUSEB_EXCCODE
+	xor	k1, k1, 8
+	beqz	k1, 1f
+	hwtrigger
+	.set	pop
+
 	/* restore gp */
 	.align	PTRLOG
-	bal	1f
+1:	bal	1f
 	 nop
 	PTR	_gp
 1:	PTR_L	gp, 0(ra)
@@ -200,6 +210,12 @@ NESTED(except_vec3_generic, 0, sp)
 
 NESTED(except_vec_ejtag_debug, 0, sp)
 	MTC0	k1, CP0_DESAVE
+
+	.set	push
+	.set	at=k1
+	hwtrigger
+	.set	pop
+
 	PTR_LA	k1, handle_ejtag_debug
 	jr	k1
 	 nop

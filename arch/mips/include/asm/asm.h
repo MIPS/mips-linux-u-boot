@@ -422,4 +422,14 @@ symbol		=	value
 #define R10KCBARRIER(addr)
 #endif
 
+	.macro	hwtrigger
+#ifdef CONFIG_MIPS_HWTRIGGER
+	.set	push
+	.set	noat
+	lui	$at, 0xbfc0
+	sw	$0, 0($at)
+	.set	pop
+#endif
+	.endm
+
 #endif /* __ASM_ASM_H */

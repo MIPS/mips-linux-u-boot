@@ -398,6 +398,13 @@ config MIPS_UHI
 	  Include support for the MIPS Unified Hosting Interface (UHI),
 	  allowing the user to run programs that use UHI atop U-Boot.
 
+config MIPS_HWTRIGGER
+	bool "MIPS hardware triggers"
+	help
+	  Perform an uncached write to a known address (0x1fc00000) when
+	  exceptions occur in order to allow easy triggering of logic
+	  analyser or emulator debug tools.
+
 endif
 
 endmenu
