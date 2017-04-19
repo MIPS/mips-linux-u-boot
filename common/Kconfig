@@ -389,4 +389,12 @@ config DISPLAY_BOARDINFO
 	  when U-Boot starts up. The board function checkboard() is called
 	  to do this.
 
+config ENV_LITTLE_ENDIAN
+	bool
+	help
+	  Enable this if your environment should always be stored in little
+	  endian format. This is useful for systems which can switch
+	  endianness but wish to preserve the environment regardless of the
+	  current endianness or that in which the environment was saved.
+
 source "common/spl/Kconfig"

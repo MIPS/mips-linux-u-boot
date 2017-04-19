@@ -132,6 +132,14 @@ extern unsigned long nand_env_oob_offset;
 
 #include "compiler.h"
 
+#ifdef CONFIG_ENV_LITTLE_ENDIAN
+# define cpu_to_env32(x)	cpu_to_le32(x)
+# define env32_to_cpu(x)	le32_to_cpu(x)
+#else
+# define cpu_to_env32(x)	(x)
+# define env32_to_cpu(x)	(x)
+#endif
+
 #ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
 # define ENV_HEADER_SIZE	(sizeof(uint32_t) + 1)
 

@@ -199,7 +199,7 @@ static int _env_import(const char *buf, int check, ulong sz)
 
 		memcpy(&crc, &ep->crc, sizeof(crc));
 
-		if (crc32(0, ep->data, sz) != crc) {
+		if (crc32(0, ep->data, sz) != env32_to_cpu(crc)) {
 			set_default_env("!bad CRC");
 			return 0;
 		}
@@ -250,7 +250,7 @@ int env_export(env_t *env_out)
 	if (ret)
 		return ret;
 
-	env_out->crc = crc32(0, env_out->data, ENV_SIZE);
+	env_out->crc = cpu_to_env32(crc32(0, env_out->data, ENV_SIZE));
 
 	return 0;
 }
