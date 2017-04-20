@@ -345,8 +345,8 @@ l1_init:
 3:
 
 #ifdef CONFIG_MIPS_L2_CACHE
-	/* If the L2 isn't bypassed then we're done */
-	beqz		R_L2_BYPASSED, return
+	/* If the L2 isn't bypassed then we don't need to init or unbypass it */
+	beqz		R_L2_BYPASSED, 2f
 
 	/* The L2 is bypassed - go initialise it */
 	b		l2_init
