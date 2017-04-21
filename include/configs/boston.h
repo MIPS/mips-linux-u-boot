@@ -111,6 +111,7 @@
  */
 #define CONFIG_MISC_INIT_R
 #define CONFIG_UPDATE_TFTP
+#define CONFIG_CMD_STRINGS
 
 /*
  * LCD Display
