@@ -128,6 +128,7 @@ extern unsigned int malta_timer_hz;
 #define CONFIG_CMD_EEPROM
 #define CONFIG_CMD_IDE
 #define CONFIG_CMD_PCI
+#define CONFIG_CMD_STRINGS
 
 #define CONFIG_SYS_LONGHELP		/* verbose help, undef to save memory */
 
