@@ -1,0 +1,15 @@
+if TARGET_SEAD3
+
+config SYS_BOARD
+	default "sead3"
+
+config SYS_VENDOR
+	default "imgtec"
+
+config SYS_CONFIG_NAME
+	default "sead3"
+
+config SYS_TEXT_BASE
+	default 0x9fc00000
+
+endif
