@@ -8,13 +8,13 @@
 #include <common.h>
 #include <errno.h>
 #include <malloc.h>
+#include <pci.h>
 #include <sdhci.h>
 #include <asm/pci.h>
 
 int pci_mmc_init(const char *name, struct pci_device_id *mmc_supported)
 {
 	struct sdhci_host *mmc_host;
-	u32 iobase;
 	int ret;
 	int i;
 
@@ -29,8 +29,8 @@ int pci_mmc_init(const char *name, struct pci_device_id *mmc_supported)
 			return -ENOMEM;
 
 		mmc_host->name = name;
-		dm_pci_read_config32(dev, PCI_BASE_ADDRESS_0, &iobase);
-		mmc_host->ioaddr = (void *)(ulong)iobase;
+		mmc_host->ioaddr = dm_pci_map_bar(dev, PCI_BASE_ADDRESS_0,
+						  PCI_REGION_MEM);
 		mmc_host->quirks = 0;
 		ret = add_sdhci(mmc_host, 0, 0);
 		if (ret)
