@@ -8,21 +8,126 @@
 
 #include <common.h>
 #include <command.h>
+#include <dm.h>
 #include <malloc.h>
 #include <net.h>
 #include <miiphy.h>
+#include <asm/io.h>
 
 #include "smc911x.h"
 
-u32 pkt_data_pull(struct eth_device *dev, u32 addr) \
+u32 pkt_data_pull(struct smc911x_priv *dev, u32 addr) \
 	__attribute__ ((weak, alias ("smc911x_reg_read")));
-void pkt_data_push(struct eth_device *dev, u32 addr, u32 val) \
+void pkt_data_push(struct smc911x_priv *dev, u32 addr, u32 val) \
 	__attribute__ ((weak, alias ("smc911x_reg_write")));
 
-static void smc911x_handle_mac_address(struct eth_device *dev)
+static u32 __smc911x_reg_read(struct smc911x_priv *priv, u32 offset)
 {
+	unsigned int io_width;
+	void __iomem *base;
+	u32 ret;
+
+#if defined(CONFIG_DM_ETH)
+	struct eth_pdata *pdata = dev_get_platdata(priv->dev);
+
+	base = (void __iomem *)pdata->iobase;
+	io_width = priv->io_width;
+#elif defined (CONFIG_SMC911X_32_BIT)
+	base = (void __iomem *)priv->eth.iobase;
+	io_width = 4;
+#elif defined(CONFIG_SMC911X_16_BIT)
+	base = (void __iomem *)priv->eth.iobase;
+	io_width = 2;
+#else
+# error "SMC911X: undefined bus width"
+#endif
+
+	switch (io_width) {
+	case 2:
+		ret = __raw_readw(base + offset);
+		ret |= __raw_readw(base + offset + 2) << 16;
+		return ret;
+
+	case 4:
+		return __raw_readl(base + offset);
+
+	default:
+		panic("Invalid io_width\n");
+		return 0;
+	}
+}
+
+static inline void __smc911x_reg_write(struct smc911x_priv *priv,
+					u32 offset, u32 val)
+{
+	unsigned int io_width;
+	void __iomem *base;
+
+#if defined(CONFIG_DM_ETH)
+	struct eth_pdata *pdata = dev_get_platdata(priv->dev);
+
+	base = (void __iomem *)pdata->iobase;
+	io_width = priv->io_width;
+#elif defined (CONFIG_SMC911X_32_BIT)
+	base = (void __iomem *)priv->eth.iobase;
+	io_width = 4;
+#elif defined(CONFIG_SMC911X_16_BIT)
+	base = (void __iomem *)priv->eth.iobase;
+	io_width = 2;
+#else
+# error "SMC911X: undefined bus width"
+#endif
+
+	switch (io_width) {
+	case 2:
+		__raw_writew(val, base + offset);
+		__raw_writew(val >> 16, base + offset + 2);
+		break;
+
+	case 4:
+		__raw_writel(val, base + offset);
+		break;
+
+	default:
+		panic("Invalid io_width\n");
+	}
+}
+
+static uchar *smc911x_mac_ptr(struct smc911x_priv *dev)
+{
+#ifdef CONFIG_DM_ETH
+	struct eth_pdata *pdata = dev_get_platdata(dev->dev);
+
+	return pdata->enetaddr;
+#else
+	return dev->eth.enetaddr;
+#endif
+}
+
+static void smc911x_probe_mac(struct smc911x_priv *dev)
+{
+	uchar *m = smc911x_mac_ptr(dev);
 	unsigned long addrh, addrl;
-	uchar *m = dev->enetaddr;
+
+	addrh = smc911x_get_mac_csr(dev, ADDRH);
+	addrl = smc911x_get_mac_csr(dev, ADDRL);
+
+	/* address is obtained from optional eeprom */
+	if (addrl == 0xffffffff && addrh == 0x0000ffff)
+		return;
+
+	m[0] = addrl;
+	m[1] = addrl >>  8;
+	m[2] = addrl >> 16;
+	m[3] = addrl >> 24;
+	m[4] = addrh;
+	m[5] = addrh >> 8;
+}
+
+static void smc911x_handle_mac_address(struct smc911x_priv *dev)
+{
+	uchar *m = smc911x_mac_ptr(dev);
+	unsigned long addrh, addrl;
 
 	addrl = m[0] | (m[1] << 8) | (m[2] << 16) | (m[3] << 24);
 	addrh = m[4] | (m[5] << 8);
@@ -32,7 +137,7 @@ static void smc911x_handle_mac_address(struct eth_device *dev)
 	printf(DRIVERNAME ": MAC %pM\n", m);
 }
 
-static int smc911x_eth_phy_read(struct eth_device *dev,
+static int smc911x_eth_phy_read(struct smc911x_priv *dev,
 				u8 phy, u8 reg, u16 *val)
 {
 	while (smc911x_get_mac_csr(dev, MII_ACC) & MII_ACC_MII_BUSY)
@@ -49,7 +154,7 @@ static int smc911x_eth_phy_read(struct eth_device *dev,
 	return 0;
 }
 
-static int smc911x_eth_phy_write(struct eth_device *dev,
+static int smc911x_eth_phy_write(struct smc911x_priv *dev,
 				u8 phy, u8 reg, u16  val)
 {
 	while (smc911x_get_mac_csr(dev, MII_ACC) & MII_ACC_MII_BUSY)
@@ -64,7 +169,7 @@ static int smc911x_eth_phy_write(struct eth_device *dev,
 	return 0;
 }
 
-static int smc911x_phy_reset(struct eth_device *dev)
+static int smc911x_phy_reset(struct smc911x_priv *dev)
 {
 	u32 reg;
 
@@ -78,7 +183,7 @@ static int smc911x_phy_reset(struct eth_device *dev)
 	return 0;
 }
 
-static void smc911x_phy_configure(struct eth_device *dev)
+static void smc911x_phy_configure(struct smc911x_priv *dev)
 {
 	int timeout;
 	u16 status;
@@ -109,7 +214,7 @@ err_out:
 	printf(DRIVERNAME ": autonegotiation timed out\n");
 }
 
-static void smc911x_enable(struct eth_device *dev)
+static void smc911x_enable(struct smc911x_priv *dev)
 {
 	/* Enable TX */
 	smc911x_reg_write(dev, HW_CFG, 8 << 16 | HW_CFG_SF);
@@ -126,11 +231,9 @@ static void smc911x_enable(struct eth_device *dev)
 
 }
 
-static int smc911x_init(struct eth_device *dev, bd_t * bd)
+static int __smc911x_start(struct smc911x_priv *dev)
 {
-	struct chip_id *id = dev->priv;
-
-	printf(DRIVERNAME ": detected %s controller\n", id->name);
+	printf(DRIVERNAME ": detected %s controller\n", dev->chip_id->name);
 
 	smc911x_reset(dev);
 
@@ -145,7 +248,7 @@ static int smc911x_init(struct eth_device *dev, bd_t * bd)
 	return 0;
 }
 
-static int smc911x_send(struct eth_device *dev, void *packet, int length)
+static int __smc911x_send(struct smc911x_priv *dev, void *packet, int length)
 {
 	u32 *data = (u32*)packet;
 	u32 tmplen;
@@ -184,13 +287,13 @@ static int smc911x_send(struct eth_device *dev, void *packet, int length)
 	return -1;
 }
 
-static void smc911x_halt(struct eth_device *dev)
+static void __smc911x_stop(struct smc911x_priv *dev)
 {
 	smc911x_reset(dev);
 	smc911x_handle_mac_address(dev);
 }
 
-static int smc911x_rx(struct eth_device *dev)
+static int __smc911x_recv(struct smc911x_priv *dev, int flags, uchar **packetp)
 {
 	u32 *data = (u32 *)net_rx_packets[0];
 	u32 pktlen, tmplen;
@@ -202,6 +305,8 @@ static int smc911x_rx(struct eth_device *dev)
 
 		smc911x_reg_write(dev, RX_CFG, 0);
 
+		*packetp = (void *)data;
+
 		tmplen = (pktlen + 3) / 4;
 		while (tmplen--)
 			*data++ = pkt_data_pull(dev, RX_DATA_FIFO);
@@ -210,8 +315,8 @@ static int smc911x_rx(struct eth_device *dev)
 			printf(DRIVERNAME
 				": dropped bad packet. Status: 0x%08x\n",
 				status);
-		else
-			net_process_received_packet(net_rx_packets[0], pktlen);
+
+		return pktlen;
 	}
 
 	return 0;
@@ -243,36 +348,152 @@ static int smc911x_miiphy_write(struct mii_dev *bus, int phy, int devad,
 }
 #endif
 
+#ifdef CONFIG_DM_ETH
+
+static int smc911x_start(struct udevice *dev)
+{
+	struct smc911x_priv *priv = dev_get_priv(dev);
+
+	return __smc911x_start(priv);
+}
+
+static int smc911x_send(struct udevice *dev, void *packet, int length)
+{
+	struct smc911x_priv *priv = dev_get_priv(dev);
+
+	return __smc911x_send(priv, packet, length);
+}
+
+static int smc911x_recv(struct udevice *dev, int flags, uchar **packetp)
+{
+	struct smc911x_priv *priv = dev_get_priv(dev);
+
+	return __smc911x_recv(priv, flags, packetp);
+}
+
+static void smc911x_stop(struct udevice *dev)
+{
+	struct smc911x_priv *priv = dev_get_priv(dev);
+
+	__smc911x_stop(priv);
+}
+
+static const struct eth_ops smc911x_ops = {
+	.start		= smc911x_start,
+	.send		= smc911x_send,
+	.recv		= smc911x_recv,
+	.stop		= smc911x_stop,
+};
+
+int smc911x_ofdata_to_platdata(struct udevice *dev)
+{
+	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct smc911x_priv *priv = dev_get_priv(dev);
+	fdt_addr_t addr;
+
+	addr = dev_read_addr(dev);
+	if (addr == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	pdata->iobase = (phys_addr_t)map_physmem(addr, 0, MAP_NOCACHE);
+
+	priv->dev = dev;
+	priv->io_width = dev_read_u32_default(dev, "reg-io-width", 2);
+
+	return 0;
+}
+
+static int smc911x_probe(struct udevice *dev)
+{
+	struct smc911x_priv *priv = dev_get_priv(dev);
+
+	if (smc911x_detect_chip(priv))
+		return -ENODEV;
+
+	smc911x_probe_mac(priv);
+
+	return 0;
+}
+
+static int smc911x_remove(struct udevice *dev)
+{
+	return 0;
+}
+
+static const struct udevice_id smc911x_ids[] = {
+	{ .compatible = "smsc,lan9115" },
+	{ }
+};
+
+U_BOOT_DRIVER(smc911x) = {
+	.name			= "smc911x",
+	.id			= UCLASS_ETH,
+	.of_match		= smc911x_ids,
+	.ofdata_to_platdata	= smc911x_ofdata_to_platdata,
+	.probe			= smc911x_probe,
+	.remove			= smc911x_remove,
+	.ops			= &smc911x_ops,
+	.priv_auto_alloc_size	= sizeof(struct smc911x_priv),
+	.platdata_auto_alloc_size	= sizeof(struct eth_pdata),
+};
+
+#else /* !CONFIG_DM_ETH */
+
+static int smc911x_init(struct eth_device *dev, bd_t * bd)
+{
+	struct smc911x_priv *priv = container_of(dev, struct smc911x_priv, eth);
+
+	return __smc911x_start(priv);
+}
+
+static void smc911x_halt(struct eth_device *dev)
+{
+	struct smc911x_priv *priv = container_of(dev, struct smc911x_priv, eth);
+
+	__smc911x_stop(priv);
+}
+
+static int smc911x_send(struct eth_device *dev, void *packet, int length)
+{
+	struct smc911x_priv *priv = container_of(dev, struct smc911x_priv, eth);
+
+	return __smc911x_send(priv, packet, length);
+}
+
+static int smc911x_rx(struct eth_device *dev)
+{
+	struct smc911x_priv *priv = container_of(dev, struct smc911x_priv, eth);
+	uchar *packetp;
+	int len;
+
+	__smc911x_rx(priv, 0, &packetp);
+	if (len)
+		net_process_received_packet(packetp, len);
+
+	return 0;
+}
+
 int smc911x_initialize(u8 dev_num, int base_addr)
 {
-	unsigned long addrl, addrh;
+	struct smc911x_priv *priv;
 	struct eth_device *dev;
 
-	dev = malloc(sizeof(*dev));
-	if (!dev) {
+	priv = malloc(sizeof(*priv));
+	if (!priv) {
 		return -1;
 	}
-	memset(dev, 0, sizeof(*dev));
+	memset(priv, 0, sizeof(*priv));
 
+	dev = &priv->dev;
 	dev->iobase = base_addr;
 
 	/* Try to detect chip. Will fail if not present. */
-	if (smc911x_detect_chip(dev)) {
+	if (smc911x_detect_chip(priv)) {
 		free(dev);
 		return 0;
 	}
 
-	addrh = smc911x_get_mac_csr(dev, ADDRH);
-	addrl = smc911x_get_mac_csr(dev, ADDRL);
-	if (!(addrl == 0xffffffff && addrh == 0x0000ffff)) {
-		/* address is obtained from optional eeprom */
-		dev->enetaddr[0] = addrl;
-		dev->enetaddr[1] = addrl >>  8;
-		dev->enetaddr[2] = addrl >> 16;
-		dev->enetaddr[3] = addrl >> 24;
-		dev->enetaddr[4] = addrh;
-		dev->enetaddr[5] = addrh >> 8;
-	}
+	smc911x_probe_mac(priv);
 
 	dev->init = smc911x_init;
 	dev->halt = smc911x_halt;
@@ -298,3 +519,5 @@ int smc911x_initialize(u8 dev_num, int base_addr)
 
 	return 1;
 }
+
+#endif /* !CONFIG_DM_ETH */
