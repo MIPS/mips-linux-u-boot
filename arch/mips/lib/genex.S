@@ -67,23 +67,23 @@
 	LONG_S	sp, PT_R29(k1)
 	move	sp, k1
 
-	LONG_S	$3, PT_R3(sp)
+	LONG_S	a0, PT_R4(sp)
 	LONG_S	$0, PT_R0(sp)
-	mfc0	v1, CP0_STATUS
+	mfc0	a0, CP0_STATUS
 	LONG_S	$2, PT_R2(sp)
-	LONG_S	v1, PT_STATUS(sp)
-	LONG_S	$4, PT_R4(sp)
-	mfc0	v1, CP0_CAUSE
+	LONG_S	a0, PT_STATUS(sp)
+	LONG_S	$3, PT_R3(sp)
+	mfc0	a0, CP0_CAUSE
 	LONG_S	$5, PT_R5(sp)
-	LONG_S	v1, PT_CAUSE(sp)
+	LONG_S	a0, PT_CAUSE(sp)
 	LONG_S	$6, PT_R6(sp)
-	MFC0	v1, CP0_EPC
+	MFC0	a0, CP0_EPC
 	LONG_S	$7, PT_R7(sp)
 #ifdef CONFIG_64BIT
 	LONG_S	$8, PT_R8(sp)
 	LONG_S	$9, PT_R9(sp)
 #endif
-	LONG_S	v1, PT_EPC(sp)
+	LONG_S	a0, PT_EPC(sp)
 	LONG_S	$25, PT_R25(sp)
 	LONG_S	$28, PT_R28(sp)
 	LONG_S	$31, PT_R31(sp)
@@ -137,15 +137,15 @@
 	ori	a0, STATMASK
 	xori	a0, STATMASK
 	mtc0	a0, CP0_STATUS
-	li	v1, ST0_CU1 | ST0_FR | ST0_IM
-	and	a0, v1
-	LONG_L	v0, PT_STATUS(sp)
-	nor	v1, $0, v1
-	and	v0, v1
-	or	v0, a0
-	mtc0	v0, CP0_STATUS
-	LONG_L	v1, PT_EPC(sp)
-	MTC0	v1, CP0_EPC
+	li	a1, ST0_CU1 | ST0_FR | ST0_IM
+	and	a0, a1
+	LONG_L	a2, PT_STATUS(sp)
+	nor	a1, $0, a1
+	and	a2, a1
+	or	a2, a0
+	mtc0	a2, CP0_STATUS
+	LONG_L	a1, PT_EPC(sp)
+	MTC0	a1, CP0_EPC
 	LONG_L	$31, PT_R31(sp)
 	LONG_L	$28, PT_R28(sp)
 	LONG_L	$25, PT_R25(sp)
