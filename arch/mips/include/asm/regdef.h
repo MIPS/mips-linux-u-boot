@@ -20,7 +20,9 @@
 #define zero	$0	/* wired zero */
 #define AT	$1	/* assembler temp  - uppercase because of ".set at" */
 #define v0	$2	/* return value */
+#define va0	$2
 #define v1	$3
+#define va1	$3
 #define a0	$4	/* argument registers */
 #define a1	$5
 #define a2	$6
@@ -63,7 +65,9 @@
 #define zero	$0	/* wired zero */
 #define AT	$at	/* assembler temp - uppercase because of ".set at" */
 #define v0	$2	/* return value - caller saved */
+#define va0	$2
 #define v1	$3
+#define va1	$3
 #define a0	$4	/* argument registers */
 #define a1	$5
 #define a2	$6
