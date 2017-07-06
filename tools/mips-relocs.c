@@ -198,10 +198,10 @@ int main(int argc, char *argv[])
 	size_t rel_size, rel_actual_size, load_sz;
 	const char *shstrtab, *sh_name, *rel_pfx;
 	int (*parse_fn)(const void *rel);
+	uintptr_t sh_offset, ph_offset;
 	uint8_t *buf_start, *buf;
 	const Elf32_Ehdr *ehdr32;
 	const Elf64_Ehdr *ehdr64;
-	uintptr_t sh_offset;
 	Elf32_Phdr *phdr32;
 	Elf64_Phdr *phdr64;
 	Elf32_Shdr *shdr32;
@@ -409,7 +409,13 @@ int main(int argc, char *argv[])
 		if (phdr_field(i, p_type) != PT_LOAD)
 			continue;
 
+		ph_offset = phdr_field(i, p_offset);
 		load_sz = phdr_field(i, p_filesz);
+		sh_offset = shdr_field(i_rel_shdr, sh_offset);
+
+		if ((sh_offset < ph_offset) || (sh_offset >= (ph_offset + load_sz)))
+		    continue;
+
 		load_sz -= rel_size - rel_actual_size;
 		set_phdr_field(i, p_filesz, load_sz);
 		break;
