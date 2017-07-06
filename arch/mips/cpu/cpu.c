@@ -31,6 +31,11 @@ int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 void write_one_tlb(int index, u32 pagemask, u32 hi, u32 low0, u32 low1)
 {
+	if (IS_ENABLED(__nanomips_subset)) {
+		panic("nanoMIPS Subset cannot use TLB");
+		return;
+	}
+
 	write_c0_entrylo0(low0);
 	write_c0_pagemask(pagemask);
 	write_c0_entrylo1(low1);

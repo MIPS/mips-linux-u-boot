@@ -19,6 +19,10 @@
 
 #include <asm/relocs.h>
 
+#ifndef EM_NANOMIPS
+# define EM_NANOMIPS 249
+#endif
+
 #define hdr_field(pfx, idx, field) ({				\
 	uint64_t _val;						\
 	unsigned int _size;					\
@@ -97,7 +101,7 @@
 
 #define shstr(idx) (&shstrtab[idx])
 
-bool is_64, is_be;
+bool is_64, is_be, is_nanomips;
 uint64_t text_base;
 
 struct mips_reloc {
@@ -111,19 +115,37 @@ static int add_reloc(unsigned int type, uint64_t off)
 	struct mips_reloc *new;
 	size_t new_sz;
 
-	switch (type) {
-	case R_MIPS_NONE:
-	case R_MIPS_LO16:
-	case R_MIPS_PC16:
-	case R_MIPS_HIGHER:
-	case R_MIPS_HIGHEST:
-	case R_MIPS_PC21_S2:
-	case R_MIPS_PC26_S2:
-		/* Skip these relocs */
-		return 0;
+	if (is_nanomips) {
+		switch (type) {
+		case R_NANOMIPS_PC25_S1:
+		case R_NANOMIPS_PC21_S1:
+		case R_NANOMIPS_PC14_S1:
+		case R_NANOMIPS_PC11_S1:
+		case R_NANOMIPS_PC10_S1:
+		case R_NANOMIPS_PC7_S1:
+		case R_NANOMIPS_PC_HI20:
+		case R_NANOMIPS_ALIGN:
+			/* Skip these relocs */
+			return 0;
 
-	default:
-		break;
+		default:
+			break;
+		}
+	} else {
+		switch (type) {
+		case R_MIPS_NONE:
+		case R_MIPS_LO16:
+		case R_MIPS_PC16:
+		case R_MIPS_HIGHER:
+		case R_MIPS_HIGHEST:
+		case R_MIPS_PC21_S2:
+		case R_MIPS_PC26_S2:
+			/* Skip these relocs */
+			return 0;
+
+		default:
+			break;
+		}
 	}
 
 	if (relocs_idx == relocs_sz) {
@@ -156,6 +178,19 @@ static int parse_mips32_rel(const void *_rel)
 
 	type = is_be ? be32toh(rel->r_info) : le32toh(rel->r_info);
 	type = ELF32_R_TYPE(type);
+
+	return add_reloc(type, off);
+}
+
+static int parse_mips32_rela(const void *_rel)
+{
+	const Elf32_Rela *rel = _rel;
+	uint64_t off, type;
+
+	off = is_be ? be32toh(rel->r_offset) : le32toh(rel->r_offset);
+	off -= text_base;
+
+	type = rel->r_info & 0xff;
 
 	return add_reloc(type, off);
 }
@@ -194,7 +229,7 @@ static int compare_relocs(const void *a, const void *b)
 
 int main(int argc, char *argv[])
 {
-	unsigned int i, j, i_rel_shdr, sh_type, sh_entsize, sh_entries;
+	unsigned int i, j, i_rel_shdr, sh_type, sh_entsize, sh_entries, pc_shift;
 	size_t rel_size, rel_actual_size, load_sz;
 	const char *shstrtab, *sh_name, *rel_pfx;
 	int (*parse_fn)(const void *rel);
@@ -279,7 +314,19 @@ int main(int argc, char *argv[])
 		goto out_free_relocs;
 	}
 
-	if (ehdr_field(e_machine) != EM_MIPS) {
+	switch (ehdr_field(e_machine)) {
+	case EM_MIPS:
+		rel_pfx = is_64 ? ".rela." : ".rel.";
+		pc_shift = 2;
+		break;
+
+	case EM_NANOMIPS:
+		is_nanomips = true;
+		rel_pfx = ".rela.";
+		pc_shift = 1;
+		break;
+
+	default:
 		fprintf(stderr, "Input ELF does not target MIPS\n");
 		err = -EINVAL;
 		goto out_free_relocs;
@@ -315,8 +362,6 @@ int main(int argc, char *argv[])
 		err = -EINVAL;
 		goto out_free_relocs;
 	}
-
-	rel_pfx = is_64 ? ".rela." : ".rel.";
 
 	for (i = 0; i < ehdr_field(e_shnum); i++) {
 		sh_type = shdr_field(i, sh_type);
@@ -363,9 +408,7 @@ int main(int argc, char *argv[])
 			if (is_64) {
 				parse_fn = parse_mips64_rela;
 			} else {
-				fprintf(stderr, "RELA-style reloc in MIPS32 ELF?\n");
-				err = -EINVAL;
-				goto out_free_relocs;
+				parse_fn = parse_mips32_rela;
 			}
 		}
 
@@ -387,7 +430,7 @@ int main(int argc, char *argv[])
 	buf = buf_start = elf + shdr_field(i_rel_shdr, sh_offset);
 	for (i = 0; i < relocs_idx; i++) {
 		output_uint(&buf, relocs[i].type);
-		output_uint(&buf, relocs[i].offset >> 2);
+		output_uint(&buf, relocs[i].offset >> pc_shift);
 	}
 
 	/* Write a terminating R_MIPS_NONE (0) */

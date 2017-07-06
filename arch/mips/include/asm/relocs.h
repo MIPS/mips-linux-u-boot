@@ -21,4 +21,17 @@
 #define R_MIPS_PC21_S2		60
 #define R_MIPS_PC26_S2		61
 
+#define R_NANOMIPS_32		1
+#define R_NANOMIPS_64		2
+#define R_NANOMIPS_PC25_S1	13
+#define R_NANOMIPS_PC21_S1	14
+#define R_NANOMIPS_PC14_S1	15
+#define R_NANOMIPS_PC11_S1	16
+#define R_NANOMIPS_PC10_S1	17
+#define R_NANOMIPS_PC7_S1	18
+#define R_NANOMIPS_PC_HI20	27
+#define R_NANOMIPS_HI20		28
+#define R_NANOMIPS_LO12		29
+#define R_NANOMIPS_ALIGN	64
+
 #endif /* __ASM_MIPS_RELOCS_H__ */

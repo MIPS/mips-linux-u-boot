@@ -5,65 +5,38 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-ifdef CONFIG_SYS_BIG_ENDIAN
-32bit-emul		:= elf32btsmip
-64bit-emul		:= elf64btsmip
-32bit-bfd		:= elf32-tradbigmips
-64bit-bfd		:= elf64-tradbigmips
-PLATFORM_CPPFLAGS	+= -EB
-PLATFORM_LDFLAGS	+= -EB
-endif
+bits-$(CONFIG_32BIT)		:= 32
+bits-$(CONFIG_64BIT)		:= 64
 
-ifdef CONFIG_SYS_LITTLE_ENDIAN
-32bit-emul		:= elf32ltsmip
-64bit-emul		:= elf64ltsmip
-32bit-bfd		:= elf32-tradlittlemips
-64bit-bfd		:= elf64-tradlittlemips
-PLATFORM_CPPFLAGS	+= -EL
-PLATFORM_LDFLAGS	+= -EL
-endif
+end-$(CONFIG_SYS_BIG_ENDIAN)	:= big
+end-$(CONFIG_SYS_LITTLE_ENDIAN)	:= little
+end-letter			:= $(firstword $(subst i, i,$(end-y)))
+end-letter-upper		:= $(subst b,B,$(subst l,L,$(end-letter)))
 
-ifdef CONFIG_32BIT
-PLATFORM_CPPFLAGS	+= -mabi=32
-PLATFORM_LDFLAGS	+= -m $(32bit-emul)
-OBJCOPYFLAGS		+= -O $(32bit-bfd)
-endif
+isa-$(CONFIG_ISA_MIPS)		:= mips
+isa-$(CONFIG_ISA_NANOMIPS)	:= nanomips
 
-ifdef CONFIG_64BIT
-PLATFORM_CPPFLAGS	+= -mabi=64
-PLATFORM_LDFLAGS	+= -m$(64bit-emul)
-OBJCOPYFLAGS		+= -O $(64bit-bfd)
-endif
+cppflags-$(CONFIG_ISA_MIPS)	+= -mabi=$(bits-y) -mno-abicalls
+cppflags-$(CONFIG_ISA_NANOMIPS)	+= -m$(bits-y)
+PLATFORM_CPPFLAGS		+= $(cppflags-y) -E$(end-letter-upper) -G 0 -fno-pic
+PLATFORM_CPPFLAGS		+= -msoft-float
+PLATFORM_CPPFLAGS		+= -D__MIPS__
 
-PLATFORM_CPPFLAGS += -D__MIPS__
-PLATFORM_ELFENTRY = "__start"
-PLATFORM_ELFFLAGS += -B mips $(OBJCOPYFLAGS)
+ldflags-$(CONFIG_ISA_MIPS)	+= -m elf$(bits-y)$(end-letter)tsmip
+ldflags-$(CONFIG_ISA_MIPS)	+= -G 0
+PLATFORM_LDFLAGS		+= $(ldflags-y) -E$(end-letter-upper) -static -n -nostdlib
 
-#
-# From Linux arch/mips/Makefile
-#
-# GCC uses -G 0 -mabicalls -fpic as default.  We don't want PIC in the kernel
-# code since it only slows down the whole thing.  At some point we might make
-# use of global pointer optimizations but their use of $28 conflicts with
-# the current pointer optimization.
-#
-# The DECStation requires an ECOFF kernel for remote booting, other MIPS
-# machines may also.  Since BFD is incredibly buggy with respect to
-# crossformat linking we rely on the elf2ecoff tool for format conversion.
-#
-# cflags-y			+= -G 0 -mno-abicalls -fno-pic -pipe
-# cflags-y			+= -msoft-float
-# LDFLAGS_vmlinux		+= -G 0 -static -n -nostdlib
-# MODFLAGS			+= -mlong-calls
-#
+PLATFORM_RELFLAGS		+= -ffunction-sections -fdata-sections
+
+#LDFLAGS_FINAL			+= --gc-sections
+
+OBJCOPYFLAGS			+= -O elf$(bits-y)-trad$(end-y)$(isa-y)
+OBJCOPYFLAGS			+= -j .text -j .rodata -j .data -j .u_boot_list
+
 ifndef CONFIG_SPL_BUILD
 OBJCOPYFLAGS			+= -j .got -j .rel -j .padding -j .dtb.init.rodata
 LDFLAGS_FINAL			+= --emit-relocs
 endif
 
-PLATFORM_CPPFLAGS		+= -G 0 -mno-abicalls -fno-pic
-PLATFORM_CPPFLAGS		+= -msoft-float
-PLATFORM_LDFLAGS		+= -G 0 -static -n -nostdlib
-PLATFORM_RELFLAGS		+= -ffunction-sections -fdata-sections
-LDFLAGS_FINAL			+= --gc-sections
-OBJCOPYFLAGS			+= -j .text -j .rodata -j .data -j .u_boot_list
+PLATFORM_ELFENTRY = "__start"
+PLATFORM_ELFFLAGS += -B mips $(OBJCOPYFLAGS)
