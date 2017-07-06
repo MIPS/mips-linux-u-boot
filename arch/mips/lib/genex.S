@@ -14,8 +14,6 @@
 
 #define STATMASK 0x1f
 
-	.set	noreorder
-
 	/*
 	 * Macros copied and adapted from Linux MIPS
 	 */
@@ -171,13 +169,11 @@
 NESTED(except_vec3_generic, 0, sp)
 	PTR_LA	k1, handle_reserved
 	jr	k1
-	 nop
 	END(except_vec3_generic)
 
 NESTED(except_vec_ejtag_debug, 0, sp)
 	PTR_LA	k1, handle_ejtag_debug
 	jr	k1
-	 nop
 	END(except_vec_ejtag_debug)
 
 NESTED(handle_reserved, PT_SIZE, sp)
@@ -187,8 +183,8 @@ NESTED(handle_reserved, PT_SIZE, sp)
 	SAVE_STATIC
 
 	PTR_LA	t9, do_reserved
+	move	a0, sp
 	jr	t9
-	 move	a0, sp
 	END(handle_reserved)
 
 NESTED(handle_ejtag_debug, PT_SIZE, sp)
@@ -200,7 +196,6 @@ NESTED(handle_ejtag_debug, PT_SIZE, sp)
 	MFC0	k1, CP0_DEBUG
 	sll	k1, k1, 30
 	bgez	k1, ejtag_return
-	 nop
 
 	SAVE_SOME
 	SAVE_AT
@@ -208,8 +203,8 @@ NESTED(handle_ejtag_debug, PT_SIZE, sp)
 	SAVE_STATIC
 
 	PTR_LA	t9, do_ejtag_debug
+	move	a0, sp
 	jalr	t9
-	 move	a0, sp
 
 	RESTORE_TEMP
 	RESTORE_STATIC

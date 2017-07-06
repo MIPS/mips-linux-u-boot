@@ -34,14 +34,11 @@
 # define STATUS_SET	ST0_KX
 #endif
 
-	.set noreorder
-
 	.macro init_wr sel
 	MTC0	zero, CP0_WATCHLO,\sel
 	mtc0	t1, CP0_WATCHHI,\sel
 	mfc0	t0, CP0_WATCHHI,\sel
 	bgez	t0, wr_done
-	 nop
 	.endm
 
 	.macro uhi_mips_exception
@@ -72,8 +69,8 @@
 	move	t0, k0
 1:
 	PTR_S	zero, 0(t0)
+	PTR_ADDIU t0, PTRSIZE
 	blt	t0, t1, 1b
-	 PTR_ADDIU t0, PTRSIZE
 
 #if CONFIG_VAL(SYS_MALLOC_F_LEN)
 	PTR_S	sp, GD_MALLOC_BASE(k0)	# gd->malloc_base offset
@@ -82,8 +79,8 @@
 
 ENTRY(_start)
 	/* U-Boot entry point */
+	mtc0	zero, CP0_COUNT	# clear cp0 count for most accurate boot timing
 	b	reset
-	 mtc0	zero, CP0_COUNT	# clear cp0 count for most accurate boot timing
 
 #if defined(CONFIG_SYS_XWAY_EBU_BOOTCFG)
 	/*
@@ -145,10 +142,9 @@ reset:
 	mfc0	t0, CP0_CONFIG, 5
 	and	t0, t0, MIPS_CONF5_VP
 	beqz	t0, 1f
-	 nop
 
+	mfc0	t0, CP0_GLOBALNUMBER
 	b	2f
-	 mfc0	t0, CP0_GLOBALNUMBER
 #endif
 
 #ifdef CONFIG_ARCH_BMIPS
@@ -161,10 +157,8 @@ reset:
 
 	/* Hang if this isn't the first CPU in the system */
 2:	beqz	t0, 4f
-	 nop
 3:	wait
 	b	3b
-	 nop
 
 	/* Init CP0 Status */
 4:	mfc0	t0, CP0_STATUS
@@ -178,7 +172,6 @@ reset:
 	 */
 	mfc0	t0, CP0_CONFIG
 	bgez	t0, wr_legacy
-	 nop
 
 	/*
 	 * Check WR bit in CP0 Config1 to determine if Watch registers
@@ -187,7 +180,6 @@ reset:
 	mfc0	t0, CP0_CONFIG, 1
 	andi	t0, (1 << 3)
 	beqz	t0, wr_done
-	 nop
 
 	/* Clear Watch Status bits and disable watch exceptions */
 	li	t1, 0x7		# Clear I, R and W conditions
@@ -200,7 +192,6 @@ reset:
 	init_wr	6
 	init_wr	7
 	b	wr_done
-	 nop
 
 wr_legacy:
 	MTC0	zero, CP0_WATCHLO
@@ -224,7 +215,6 @@ wr_done:
 #ifdef CONFIG_MIPS_CM
 	PTR_LA	t9, mips_cm_map
 	jalr	t9
-	 nop
 #endif
 
 #ifdef CONFIG_MIPS_INIT_STACK_IN_SRAM
@@ -235,7 +225,6 @@ wr_done:
 	/* Earliest point to set up debug uart */
 	PTR_LA	t9, debug_uart_init
 	jalr	t9
-	 nop
 # endif
 #endif
 
@@ -244,19 +233,16 @@ wr_done:
 	/* Initialize any external memory */
 	PTR_LA	t9, lowlevel_init
 	jalr	t9
-	 nop
 # endif
 
 	/* Initialize caches... */
 	PTR_LA	t9, mips_cache_reset
 	jalr	t9
-	 nop
 
 # ifndef CONFIG_SYS_MIPS_CACHE_INIT_RAM_LOAD
 	/* Initialize any external memory */
 	PTR_LA	t9, lowlevel_init
 	jalr	t9
-	 nop
 # endif
 #endif
 
@@ -268,14 +254,13 @@ wr_done:
 	/* Earliest point to set up debug uart */
 	PTR_LA	t9, debug_uart_init
 	jalr	t9
-	 nop
 # endif
 #endif
 
 	move	a0, zero		# a0 <-- boot_flags = 0
 	PTR_LA	t9, board_init_f
 
+	move	ra, zero
 	jr	t9
-	 move	ra, zero
 
 	END(_start)
