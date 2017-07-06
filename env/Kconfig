@@ -14,6 +14,7 @@ choice
 	default ENV_IS_IN_FLASH if MPC86xx || MPC83xx
 	default ENV_IS_IN_FLASH if ARCH_MPC8572 || ARCH_MPC8548 || ARCH_MPC8641
 	default ENV_IS_IN_FLASH if SH && !CPU_SH4
+	default ENV_IS_IN_FLASH if TARGET_SEAD_3
 	default ENV_IS_IN_SPI_FLASH if ARMADA_XP
 	default ENV_IS_IN_SPI_FLASH if INTEL_BAYTRAIL
 	default ENV_IS_IN_SPI_FLASH if INTEL_BRASWELL
@@ -404,13 +405,14 @@ config ENV_FAT_FILE
 	  It's a string of the FAT file name. This file use to store the
 	  environment.
 
-if ARCH_SUNXI
+if ARCH_SUNXI || TARGET_SEAD_3
 
 config ENV_OFFSET
 	hex "Environment Offset"
 	depends on !ENV_IS_IN_UBI
 	depends on !ENV_IS_NOWHERE
 	default 0x88000 if ARCH_SUNXI
+	default 0x1fc0000 if TARGET_SEAD_3
 	help
 	  Offset from the start of the device (or partition)
 
@@ -418,8 +420,13 @@ config ENV_SIZE
 	hex "Environment Size"
 	depends on !ENV_IS_NOWHERE
 	default 0x20000 if ARCH_SUNXI
+	default 0x40000 if TARGET_SEAD_3
 	help
 	  Size of the environment storage area
+
+endif
+
+if ARCH_SUNXI
 
 config ENV_UBI_PART
 	string "UBI partition name"
