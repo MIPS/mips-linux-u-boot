@@ -28,6 +28,7 @@
  */
 
 #include <common.h>
+#include <asm/compiler.h>
 #include <asm/relocs.h>
 #include <asm/sections.h>
 
@@ -148,10 +149,10 @@ void relocate_code(ulong start_addr_sp, gd_t *new_gd, ulong relocaddr)
 
 	/* Jump to the relocated U-Boot */
 	asm volatile(
-		       "move	$29, %0\n"
-		"	move	$4, %1\n"
-		"	move	$5, %2\n"
-		"	move	$31, $0\n"
+		       "move	$" MIPS_R_PFX "29, %0\n"
+		"	move	$" MIPS_R_PFX "4, %1\n"
+		"	move	$" MIPS_R_PFX "5, %2\n"
+		"	move	$" MIPS_R_PFX "31, $" MIPS_R_PFX "0\n"
 		"	jr	%3"
 		: /* no outputs */
 		: "r"(start_addr_sp),
