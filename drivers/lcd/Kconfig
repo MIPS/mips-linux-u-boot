@@ -7,4 +7,13 @@ config DM_LCD
 	  Enable this to provide support for simple LCD displays commonly used
 	  to display simple messages in order to provide feedback to the user.
 
+config LCD_SEAD_3
+	bool "SEAD-3 LCD support"
+	depends on DM_LCD
+	default y if TARGET_SEAD_3
+	select SYSCON
+	help
+	  Enable this to support the 16x2 LCD display found on the MIPS SEAD-3
+	  development board.
+
 endmenu
