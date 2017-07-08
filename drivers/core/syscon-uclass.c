@@ -93,6 +93,7 @@ UCLASS_DRIVER(syscon) = {
 	.id		= UCLASS_SYSCON,
 	.name		= "syscon",
 	.per_device_auto_alloc_size = sizeof(struct syscon_uc_info),
+	.post_bind	= dm_scan_fdt_dev,
 	.pre_probe = syscon_pre_probe,
 };
 
