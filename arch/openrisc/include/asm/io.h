@@ -8,39 +8,6 @@
 #define __ASM_OPENRISC_IO_H
 
 /*
- * Given a physical address and a length, return a virtual address
- * that can be used to access the memory range with the caching
- * properties specified by "flags".
- */
-#define MAP_NOCACHE	(0)
-#define MAP_WRCOMBINE	(0)
-#define MAP_WRBACK	(0)
-#define MAP_WRTHROUGH	(0)
-
-static inline void *
-map_physmem(phys_addr_t paddr, unsigned long len, unsigned long flags)
-{
-	return (void *)paddr;
-}
-
-/*
- * Take down a mapping set up by map_physmem().
- */
-static inline void unmap_physmem(void *vaddr, unsigned long flags)
-{
-
-}
-
-/*
- * Change virtual addresses to physical addresses
- */
-static inline phys_addr_t virt_to_phys(void *vaddr)
-{
-	return (phys_addr_t)(vaddr);
-}
-
-
-/*
  * readX/writeX() are used to access memory mapped devices. On some
  * architectures the memory mapped IO stuff needs to be accessed
  * differently. On the openrisc architecture, we just read/write the
@@ -95,5 +62,7 @@ static inline phys_addr_t virt_to_phys(void *vaddr)
 #define iowrite8(v, addr)	writeb((v), (addr))
 #define iowrite16(v, addr)	writew((v), (addr))
 #define iowrite32(v, addr)	writel((v), (addr))
+
+#include <asm-generic/io.h>
 
 #endif

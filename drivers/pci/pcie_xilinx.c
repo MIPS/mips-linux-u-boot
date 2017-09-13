@@ -23,8 +23,14 @@ struct xilinx_pcie {
 };
 
 /* Register definitions */
-#define XILINX_PCIE_REG_PSCR		0x144
-#define XILINX_PCIE_REG_PSCR_LNKUP	BIT(11)
+#define XILINX_PCIE_REG_BRIDGE_INFO			0x130
+#define  XILINX_PCIE_REG_BRIDGE_INFO_ECAMSZ_SHIFT	16
+#define  XILINX_PCIE_REG_BRIDGE_INFO_ECAMSZ_MASK	(0x7 << 16)
+#define XILINX_PCIE_REG_INT_MASK			0x13c
+#define XILINX_PCIE_REG_PSCR				0x144
+#define  XILINX_PCIE_REG_PSCR_LNKUP			BIT(11)
+#define XILINX_PCIE_REG_RPSC				0x148
+#define  XILINX_PCIE_REG_RPSC_BRIDGEEN			BIT(0)
 
 /**
  * pcie_xilinx_link_up() - Check whether the PCIe link is up
@@ -36,7 +42,8 @@ struct xilinx_pcie {
  */
 static bool pcie_xilinx_link_up(struct xilinx_pcie *pcie)
 {
-	uint32_t pscr = __raw_readl(pcie->cfg_base + XILINX_PCIE_REG_PSCR);
+	//uint32_t pscr = __raw_readl(pcie->cfg_base + XILINX_PCIE_REG_PSCR);
+	uint32_t pscr = readl(pcie->cfg_base + XILINX_PCIE_REG_PSCR);
 
 	return pscr & XILINX_PCIE_REG_PSCR_LNKUP;
 }
@@ -115,13 +122,16 @@ static int pcie_xilinx_read_config(struct udevice *bus, pci_dev_t bdf,
 
 	switch (size) {
 	case PCI_SIZE_8:
-		*valuep = __raw_readb(address);
+		//*valuep = __raw_readb(address);
+		*valuep = readb(address); //for big endian system
 		return 0;
 	case PCI_SIZE_16:
-		*valuep = __raw_readw(address);
+		//*valuep = __raw_readw(address);
+		*valuep = readw(address);
 		return 0;
 	case PCI_SIZE_32:
-		*valuep = __raw_readl(address);
+		//*valuep = __raw_readl(address);
+		*valuep = readl(address);
 		return 0;
 	default:
 		return -EINVAL;
@@ -154,15 +164,27 @@ static int pcie_xilinx_write_config(struct udevice *bus, pci_dev_t bdf,
 	if (err < 0)
 		return 0;
 
+	if (bdf == PCI_BDF(bus->seq, 0, 0)) {
+		switch (offset) {
+		case PCI_MEMORY_BASE:
+		case PCI_MEMORY_LIMIT:
+			/* Writing the memory base or limit causes problems */
+			return 0;
+		}
+	}
+
 	switch (size) {
 	case PCI_SIZE_8:
-		__raw_writeb(value, address);
+		//__raw_writeb(value, address);
+		writeb(value, address);		//for big endian system
 		return 0;
 	case PCI_SIZE_16:
-		__raw_writew(value, address);
+		//__raw_writew(value, address);
+		writew(value, address);
 		return 0;
 	case PCI_SIZE_32:
-		__raw_writel(value, address);
+		//__raw_writel(value, address);
+		writel(value, address);
 		return 0;
 	default:
 		return -EINVAL;
@@ -200,6 +222,31 @@ static int pcie_xilinx_ofdata_to_platdata(struct udevice *dev)
 	return 0;
 }
 
+static int pcie_xilinx_probe(struct udevice *dev)
+{
+	struct xilinx_pcie *pcie = dev_get_priv(dev);
+	u32 bridge_info, ecam_sz, rpsc;
+
+	/* Disable all interrupts */
+	writel(0, pcie->cfg_base + XILINX_PCIE_REG_INT_MASK);
+
+	/* Enable the bridge */
+	rpsc = readl(pcie->cfg_base + XILINX_PCIE_REG_RPSC);
+	rpsc |= XILINX_PCIE_REG_RPSC_BRIDGEEN;
+	writel(rpsc, pcie->cfg_base + XILINX_PCIE_REG_RPSC);
+
+	/* Discover the size of the ECAM region */
+	bridge_info = readl(pcie->cfg_base + XILINX_PCIE_REG_BRIDGE_INFO);
+	ecam_sz = bridge_info & XILINX_PCIE_REG_BRIDGE_INFO_ECAMSZ_MASK;
+	ecam_sz >>= XILINX_PCIE_REG_BRIDGE_INFO_ECAMSZ_SHIFT;
+
+	/* Enable access to all possible subordinate buses */
+	writel((0 << 0) | (1 << 8) | (GENMASK(ecam_sz - 1, 0) << 16),
+	       pcie->cfg_base + PCI_PRIMARY_BUS);
+
+	return 0;
+}
+
 static const struct dm_pci_ops pcie_xilinx_ops = {
 	.read_config	= pcie_xilinx_read_config,
 	.write_config	= pcie_xilinx_write_config,
@@ -216,5 +263,6 @@ U_BOOT_DRIVER(pcie_xilinx) = {
 	.of_match		= pcie_xilinx_ids,
 	.ops			= &pcie_xilinx_ops,
 	.ofdata_to_platdata	= pcie_xilinx_ofdata_to_platdata,
+	.probe			= pcie_xilinx_probe,
 	.priv_auto_alloc_size	= sizeof(struct xilinx_pcie),
 };

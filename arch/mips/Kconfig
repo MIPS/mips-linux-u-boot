@@ -83,11 +83,14 @@ config MACH_PIC32
 config TARGET_BOSTON
 	bool "Support Boston"
 	select DM
+	select DM_GPIO
 	select DM_SERIAL
+	select ENV_LITTLE_ENDIAN
 	select OF_CONTROL
 	select MIPS_CM
 	select MIPS_L1_CACHE_SHIFT_6
 	select MIPS_L2_CACHE
+	select OF_BOARD_SETUP
 	select SUPPORTS_BIG_ENDIAN
 	select SUPPORTS_LITTLE_ENDIAN
 	select SUPPORTS_CPU_MIPS32_R1
@@ -97,6 +100,7 @@ config TARGET_BOSTON
 	select SUPPORTS_CPU_MIPS64_R2
 	select SUPPORTS_CPU_MIPS64_R6
 	select ROM_EXCEPTION_VECTORS
+	select SWAP_IO_SPACE
 
 config TARGET_XILFPGA
 	bool "Support Imagination Xilfpga"
@@ -385,6 +389,7 @@ config MIPS_CM
 
 config MIPS_CM_BASE
 	hex
+	default 0x16100000 if TARGET_BOSTON
 	default 0x1fbf8000
 	help
 	  The physical base address at which to map the MIPS Coherence Manager

@@ -18,7 +18,7 @@
 #define CONFIG_SYS_MALLOC_LEN           0x40000
 #define CONFIG_SYS_BOOTPARAMS_LEN       0x20000
 
-#define CONFIG_SYS_SDRAM_BASE           0x80000000
+#define CONFIG_SYS_SDRAM_BASE           0x0
 #define CONFIG_SYS_LOAD_ADDR            0x81000000
 
 #define CONFIG_SYS_NO_FLASH

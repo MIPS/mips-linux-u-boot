@@ -124,16 +124,15 @@ int regmap_read(struct regmap *map, uint offset, uint *valp)
 {
 	uint32_t *ptr = map_physmem(map->base + offset, 4, MAP_NOCACHE);
 
-	*valp = le32_to_cpu(readl(ptr));
-
+	*valp = le32_to_cpu(__raw_readl(ptr));
+	
 	return 0;
 }
 
 int regmap_write(struct regmap *map, uint offset, uint val)
 {
 	uint32_t *ptr = map_physmem(map->base + offset, 4, MAP_NOCACHE);
-
-	writel(cpu_to_le32(val), ptr);
+	__raw_writel(cpu_to_le32(val), ptr);
 
 	return 0;
 }
