@@ -75,18 +75,27 @@ uint32_t fdt_get_max_phandle(const void *fdt)
 
 int fdt_get_mem_rsv(const void *fdt, int n, uint64_t *address, uint64_t *size)
 {
+	uint64_t u64;
+
 	FDT_CHECK_HEADER(fdt);
-	*address = fdt64_to_cpu(_fdt_mem_rsv(fdt, n)->address);
-	*size = fdt64_to_cpu(_fdt_mem_rsv(fdt, n)->size);
+	memcpy(&u64, &_fdt_mem_rsv(fdt, n)->address, sizeof(u64));
+	*address = fdt64_to_cpu(u64);
+	memcpy(&u64, &_fdt_mem_rsv(fdt, n)->size, sizeof(u64));
+	*size = u64;
 	return 0;
 }
 
 int fdt_num_mem_rsv(const void *fdt)
 {
 	int i = 0;
+	uint64_t u64;
 
-	while (fdt64_to_cpu(_fdt_mem_rsv(fdt, i)->size) != 0)
+	while (true) {
+		memcpy(&u64, &_fdt_mem_rsv(fdt, i)->size, sizeof(u64));
+		if (!u64)
+			break;
 		i++;
+	}
 	return i;
 }
 
