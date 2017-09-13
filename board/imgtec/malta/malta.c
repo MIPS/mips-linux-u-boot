@@ -7,21 +7,28 @@
 
 #include <common.h>
 #include <ide.h>
+#include <linux/sizes.h>
 #include <netdev.h>
 #include <pci.h>
 #include <pci_gt64120.h>
 #include <pci_msc01.h>
 #include <rtc.h>
+#include <spd.h>
 
 #include <asm/addrspace.h>
 #include <asm/io.h>
-#include <asm/malta.h>
+#include <asm/maar.h>
 
+#include "malta.h"
 #include "superio.h"
+
+unsigned int malta_timer_hz = 250000000;
 
 enum core_card {
 	CORE_UNKNOWN,
 	CORE_LV,
+	CORE_FPGA4,
+	CORE_FPGA5,
 	CORE_FPGA6,
 };
 
@@ -30,24 +37,6 @@ enum sys_con {
 	SYSCON_GT64120,
 	SYSCON_MSC01,
 };
-
-static void malta_lcd_puts(const char *str)
-{
-	int i;
-	void *reg = (void *)CKSEG1ADDR(MALTA_ASCIIPOS0);
-
-	/* print up to 8 characters of the string */
-	for (i = 0; i < min((int)strlen(str), 8); i++) {
-		__raw_writel(str[i], reg);
-		reg += MALTA_ASCIIPOS1 - MALTA_ASCIIPOS0;
-	}
-
-	/* fill the rest of the display with spaces */
-	for (; i < 8; i++) {
-		__raw_writel(' ', reg);
-		reg += MALTA_ASCIIPOS1 - MALTA_ASCIIPOS0;
-	}
-}
 
 static enum core_card malta_core_card(void)
 {
@@ -60,6 +49,12 @@ static enum core_card malta_core_card(void)
 	switch (corid) {
 	case MALTA_REVISION_CORID_CORE_LV:
 		return CORE_LV;
+
+	case MALTA_REVISION_CORID_CORE_FPGA4:
+		return CORE_FPGA4;
+
+	case MALTA_REVISION_CORID_CORE_FPGA5:
+		return CORE_FPGA5;
 
 	case MALTA_REVISION_CORID_CORE_FPGA6:
 		return CORE_FPGA6;
@@ -75,7 +70,7 @@ static enum sys_con malta_sys_con(void)
 	case CORE_LV:
 		return SYSCON_GT64120;
 
-	case CORE_FPGA6:
+	case CORE_FPGA4 ... CORE_FPGA6:
 		return SYSCON_MSC01;
 
 	default:
@@ -85,7 +80,48 @@ static enum sys_con malta_sys_con(void)
 
 phys_size_t initdram(int board_type)
 {
-	return CONFIG_SYS_MEM_SIZE;
+	extern unsigned char malta_spd_read(unsigned int offset);
+	unsigned int mem_type, nrow_addr, ncol_addr, nrows, nbanks;
+	phys_size_t sz;
+	struct mips_maar_cfg maar_cfg[] = {
+		{ 0x00010000ull, 0x000effffull, MIPS_MAAR_S | MIPS_MAAR_V },
+		{ 0x00100000ull, 0x0fffffffull, MIPS_MAAR_S | MIPS_MAAR_V },
+		{ 0x20000000ull, 0xffffffffull, MIPS_MAAR_S | MIPS_MAAR_V },
+		{ },
+	};
+
+	/* read values from SPD */
+	mem_type = malta_spd_read(SPD_MEM_TYPE);
+	nrow_addr = malta_spd_read(SPD_NROW_ADDR) & 0xf;
+	ncol_addr = malta_spd_read(SPD_NCOL_ADDR) & 0xf;
+	nrows = malta_spd_read(SPD_NROWS);
+	nbanks = malta_spd_read(SPD_NBANKS);
+
+	/* handle DDR2 row encoding */
+	if (mem_type >= SPD_MEMTYPE_DDR2)
+		nrows = (nrows & 0x7) + 1;
+
+	/* calculate RAM size */
+	sz = (phys_size_t)nrows << (nrow_addr + ncol_addr);
+	sz *= nbanks;
+	sz *= 8;
+
+	maar_cfg[2].upper = sz - 1;
+	mips_maar_init(maar_cfg);
+
+	return sz;
+}
+
+ulong board_get_usable_ram_top(ulong total_size)
+{
+	DECLARE_GLOBAL_DATA_PTR;
+
+	if (gd->ram_top < (ulong)phys_to_virt(CONFIG_SYS_SDRAM_BASE)) {
+		/* 2GB wrapped around to 0 */
+		return (ulong)phys_to_virt(SZ_256M);
+	}
+
+	return min_t(ulong, gd->ram_top, (ulong)phys_to_virt(SZ_256M));
 }
 
 int checkboard(void)
@@ -101,8 +137,8 @@ int checkboard(void)
 		puts(" CoreLV");
 		break;
 
-	case CORE_FPGA6:
-		puts(" CoreFPGA6");
+	case CORE_FPGA4 ... CORE_FPGA6:
+		printf(" CoreFPGA%d", 4 + (core - CORE_FPGA4));
 		break;
 
 	default:
@@ -153,9 +189,85 @@ int board_early_init_f(void)
 	return 0;
 }
 
+static int read_eeprom(void)
+{
+	uchar buf[256], ver, count, id, size;
+	unsigned i, sn_pos, pos = 0x200;
+	char sn[16];
+	int err;
+
+	err = eeprom_read(0x54, pos++, &ver, 1);
+	if (err)
+		return err;
+
+	if (ver != 1) {
+		printf("WARNING: EEPROM data version %u unsupported\n", ver);
+		return -1;
+	}
+
+	err = eeprom_read(0x54, pos++, &count, 1);
+	if (err)
+		return err;
+
+	while (count--) {
+		err = eeprom_read(0x54, pos++, &id, 1);
+		if (err)
+			return err;
+
+		err = eeprom_read(0x54, pos++, &size, 1);
+		if (err)
+			return err;
+
+		err = eeprom_read(0x54, pos, buf, size);
+		if (err)
+			return err;
+		pos += size;
+
+		switch (id) {
+		case 1:
+			/* MAC */
+			eth_setenv_enetaddr("ethaddr", buf);
+			break;
+
+		case 2:
+			/* Serial */
+			i = 0;
+			while (!buf[i] && (i < size))
+				i++;
+
+			snprintf(sn, sizeof(sn), "ERROR");
+			sn_pos = 0;
+			for (; i < size; i++)
+				sn_pos += snprintf(&sn[sn_pos],
+						   sizeof(sn) - sn_pos,
+						   "%x", buf[i]);
+
+			setenv("serial#", sn);
+			break;
+
+		default:
+			printf("WARNING: unrecognised EEPROM data ID %u\n", id);
+		}
+	}
+
+	return 0;
+}
+
 int misc_init_r(void)
 {
 	rtc_reset();
+
+	/* Approximate the timer frequency using the RTC */
+	write_c0_compare(~0);
+	rtc_second_boundary();
+	write_c0_count(0);
+	rtc_second_boundary();
+	malta_timer_hz = read_c0_count();
+	timer_init();
+
+	/* Read the MAC & serial from EEPROM */
+	if (!getenv("ethaddr") || !getenv("serial#"))
+		read_eeprom();
 
 	return 0;
 }

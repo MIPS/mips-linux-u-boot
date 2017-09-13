@@ -422,4 +422,34 @@ symbol		=	value
 #define R10KCBARRIER(addr)
 #endif
 
+#if __mips_isa_rev < 2
+
+	.macro	ins	rt, rs, pos, size
+	.if	\rt == \rs
+	/* Our expansion won't work if we inadvertently change \rs */
+	.err
+	.endif
+	.set	push
+	.set	noat
+	li	$1, ((1 << \size) - 1) << \pos
+	or	\rt, \rt, $1
+	xor	\rt, \rt, $1
+	li	$1, (1 << \size) - 1
+	and	$1, $1, \rs
+	sll	$1, $1, \pos
+	or	\rt, \rt, $1
+	.set	pop
+	.endm
+
+#endif
+
+	.macro	log2	dst, src
+	.set	push
+	.set	noat
+	clz	\dst, \src
+	li	$1, 31
+	sub	\dst, $1, \dst
+	.set	pop
+	.endm
+
 #endif /* __ASM_ASM_H */

@@ -56,7 +56,7 @@ static int msc01_config_access(struct msc01_pci_controller *msc01,
 	if (__raw_readl(intstat) & aborts) {
 		/* clear abort status */
 		__raw_writel(aborts, intstat);
-		return -1;
+		return 0;
 	}
 
 	return 0;

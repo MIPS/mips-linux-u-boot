@@ -12,6 +12,18 @@
 		stdout-path = &uart0;
 	};
 
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "cpu-mips";
+			reg = <0>;
+			u-boot,dm-pre-reloc;
+		};
+	};
+
 	isa@0 {
 		compatible = "isa";
 		#address-cells = <2>;

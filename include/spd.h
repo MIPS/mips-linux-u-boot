@@ -12,6 +12,8 @@
 #ifndef _SPD_H_
 #define _SPD_H_
 
+#ifndef __ASSEMBLY__
+
 typedef struct spd_eeprom_s {
 	unsigned char info_size;   /*  0 # bytes written into serial memory */
 	unsigned char chip_size;   /*  1 Total # bytes of SPD memory device */
@@ -78,6 +80,7 @@ typedef struct spd_eeprom_s {
 	unsigned char intel_cas;   /* 129 Intel spec: CAS# Latency support */
 } spd_eeprom_t;
 
+#endif /* !__ASSEMBLY__ */
 
 /*
  * Byte 2 Fundamental Memory Types.
@@ -90,5 +93,39 @@ typedef struct spd_eeprom_s {
 #define SPD_MEMTYPE_SGRAM	(0x06)
 #define SPD_MEMTYPE_DDR		(0x07)
 #define SPD_MEMTYPE_DDR2	(0x08)
+
+/*
+ * Byte 11 DIMM Configuration
+ */
+#define SPD_CONFIG_ECC		0x02
+
+/*
+ * Byte 12 Refresh Rate
+ */
+#define SPD_REFRESH_RATE	0x3f
+#define SPD_REFRESH_RATE_15_625	0
+#define SPD_REFRESH_RATE_3_9	1
+#define SPD_REFRESH_RATE_7_8	2
+#define SPD_REFRESH_RATE_31_3	3
+#define SPD_REFRESH_RATE_62_5	4
+#define SPD_REFRESH_RATE_125	5
+
+/*
+ * Byte 18 CAS Latency
+ */
+#define SPD_CAS_LAT_1		0x01
+#define SPD_CAS_LAT_2		0x02
+#define SPD_CAS_LAT_3		0x04
+#define SPD_CAS_LAT_DDR_1_0	0x01
+#define SPD_CAS_LAT_DDR_1_5	0x02
+#define SPD_CAS_LAT_DDR_2_0	0x04
+#define SPD_CAS_LAT_DDR_2_5	0x08
+#define SPD_CAS_LAT_DDR_3_0	0x10
+
+/*
+ * Byte 21 Module Attributes
+ */
+#define SPD_MOD_ATTR_REG	0x02
+#define SPD_MOD_ATTR_REG_SHF	1
 
 #endif /* _SPD_H_ */

@@ -5,6 +5,7 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj-y	= malta.o
+obj-y	= iocu.o
+obj-y	+= malta.o
 obj-y	+= lowlevel_init.o
 obj-y	+= superio.o

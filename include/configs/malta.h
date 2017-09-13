@@ -12,6 +12,7 @@
  */
 #define CONFIG_MALTA
 #define CONFIG_BOARD_EARLY_INIT_F
+#define CONFIG_MISC_INIT_F
 
 #define CONFIG_MEMSIZE_IN_BYTES
 
@@ -28,8 +29,10 @@
 /*
  * CPU Configuration
  */
-#define CONFIG_SYS_MHZ			250	/* arbitrary value */
-#define CONFIG_SYS_MIPS_TIMER_FREQ	(CONFIG_SYS_MHZ * 1000000)
+#ifndef __ASSEMBLY__
+extern unsigned int malta_timer_hz;
+#endif
+#define CONFIG_SYS_MIPS_TIMER_FREQ	malta_timer_hz
 
 /*
  * Memory map
@@ -51,7 +54,7 @@
 # define CONFIG_SYS_MEMTEST_END		0x80800000
 #endif
 
-#define CONFIG_SYS_MALLOC_LEN		(128 * 1024)
+#define CONFIG_SYS_MALLOC_LEN		(512 * 1024)
 #define CONFIG_SYS_BOOTPARAMS_LEN	(128 * 1024)
 #define CONFIG_SYS_BOOTM_LEN		(64 * 1024 * 1024)
 
@@ -93,6 +96,17 @@
 	(CONFIG_SYS_FLASH_BASE + (4 << 20) - CONFIG_ENV_SIZE)
 
 /*
+ * I2C/SMBUS
+ */
+#define CONFIG_SYS_I2C			1
+
+/*
+ * EEPROM
+ */
+#define CONFIG_SYS_I2C_EEPROM_ADDR	0x54
+#define CONFIG_SYS_I2C_EEPROM_ADDR_LEN	1
+
+/*
  * IDE/ATA
  */
 #define CONFIG_SYS_IDE_MAXBUS		1
@@ -103,12 +117,23 @@
 #define CONFIG_SYS_ATA_REG_OFFSET	0
 
 /*
+ * Disk Partition Support
+ */
+#define CONFIG_DOS_PARTITION
+#define CONFIG_PARTITION_UUIDS
+#define CONFIG_CMD_PART
+
+/*
  * Commands
  */
 #define CONFIG_CMD_DATE
+#define CONFIG_CMD_EEPROM
 #define CONFIG_CMD_IDE
 #define CONFIG_CMD_PCI
+#define CONFIG_CMD_STRINGS
 
 #define CONFIG_SYS_LONGHELP		/* verbose help, undef to save memory */
+
+#define CONFIG_UPDATE_TFTP
 
 #endif /* _MALTA_CONFIG_H */

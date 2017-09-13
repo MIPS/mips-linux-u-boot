@@ -152,6 +152,7 @@ int rtc_get (struct rtc_time *);
 int rtc_set (struct rtc_time *);
 void rtc_reset (void);
 void rtc_enable_32khz_output(void);
+void rtc_second_boundary(void);
 
 /**
  * rtc_read8() - Read an 8-bit register
