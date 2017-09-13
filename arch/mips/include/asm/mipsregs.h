@@ -42,6 +42,9 @@
 #define CP0_GLOBALNUMBER $3, 1
 #define CP0_CONTEXT $4
 #define CP0_PAGEMASK $5
+#define CP0_SEGCTL0 $5,2
+#define CP0_SEGCTL1 $5,3
+#define CP0_SEGCTL2 $5,4
 #define CP0_WIRED $6
 #define CP0_INFO $7
 #define CP0_HWRENA $7, 0
