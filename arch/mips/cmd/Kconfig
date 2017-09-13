@@ -1,0 +1,23 @@
+menu "MIPS-specific commands"
+	depends on MIPS
+
+config CMD_COP
+	bool "Coprocessor control register access"
+	help
+	  Allows access to coprocessor control registers, notably those in
+	  coprocessor 0 which provide information about & control of much of
+	  the system. Access to such registers can be very useful for debugging
+	  purposes or to make an adjustment as part of a quick test during
+	  development. Please beware that one can cause the system to become
+	  unstable by modifying coprocessor register values, so this command
+	  should be used with care.
+
+config CMD_ENDIAN
+	bool "Endian switch command"
+	help
+	  Some MIPS cpus can switch endianness on the fly. This command allows
+	  the user to check the current endianness of the cpu. And switch
+	  it if possible. This is experimental for the moment as some values
+	  are hard-coded.
+
+endmenu
