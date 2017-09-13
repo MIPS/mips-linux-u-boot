@@ -77,6 +77,8 @@
 # define CONFIG_ENV_ADDR \
 	(0xb8000000 + (128 << 20) - CONFIG_ENV_SIZE)
 #endif
+#define CONFIG_ENV_CALLBACK_LIST_STATIC \
+	"io" ENV_DOT_ESCAPE ".coherent:io_coherent,"
 
 /*
  * SATA
@@ -113,6 +115,7 @@
  * Miscellaneous
  */
 #define CONFIG_BOARD_EARLY_INIT_R
+#define CONFIG_MISC_INIT_F
 #define CONFIG_MISC_INIT_R
 #define CONFIG_UPDATE_TFTP
 #define CONFIG_CMD_STRINGS
