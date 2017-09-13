@@ -8,7 +8,7 @@
 #ifndef _ASM_ADDRSPACE_H
 #define _ASM_ADDRSPACE_H
 
-#include <spaces.h>
+#include <asm/mach-generic/spaces.h>
 
 /*
  *  Configure language

@@ -170,28 +170,34 @@ static void linux_env_set(const char *env_name, const char *env_val)
 	}
 }
 
+static void linux_env_legacy_mem(const char *name, ulong val)
+{
+	char *unit = "bytes";
+	char env_buf[12];
+
+#ifndef CONFIG_MEMSIZE_IN_BYTES
+	unit = "MB";
+	val >>= 20;
+#endif
+
+	debug("## Giving linux %s in %s, %lu\n", name, unit, val);
+	sprintf(env_buf, "%lu", val);
+	linux_env_set(name, env_buf);
+}
+
 static void linux_env_legacy(bootm_headers_t *images)
 {
 	char env_buf[12];
 	const char *cp;
 	ulong rd_start, rd_size;
 
-	if (CONFIG_IS_ENABLED(MEMSIZE_IN_BYTES)) {
-		sprintf(env_buf, "%lu", (ulong)gd->ram_size);
-		debug("## Giving linux memsize in bytes, %lu\n",
-		      (ulong)gd->ram_size);
-	} else {
-		sprintf(env_buf, "%lu", (ulong)(gd->ram_size >> 20));
-		debug("## Giving linux memsize in MB, %lu\n",
-		      (ulong)(gd->ram_size >> 20));
-	}
-
 	rd_start = images->initrd_start;
 	rd_size = images->initrd_end - images->initrd_start;
 
 	linux_env_init();
 
-	linux_env_set("memsize", env_buf);
+	linux_env_legacy_mem("memsize", min_t(ulong, gd->ram_size, 256 << 20));
+	linux_env_legacy_mem("ememsize", gd->ram_size);
 
 	sprintf(env_buf, "0x%08lX", rd_start);
 	linux_env_set("initrd_start", env_buf);
@@ -213,9 +219,11 @@ static void linux_env_legacy(bootm_headers_t *images)
 	if (cp)
 		linux_env_set("eth1addr", cp);
 
-	if (CONFIG_IS_ENABLED(MALTA)) {
+	if (CONFIG_IS_ENABLED(MALTA) || CONFIG_IS_ENABLED(TARGET_SEAD3)) {
 		sprintf(env_buf, "%un8r", gd->baudrate);
 		linux_env_set("modetty0", env_buf);
+		linux_env_set("modetty1", env_buf);
+		linux_env_set("yamontty", "tty1");
 	}
 }
 
@@ -282,17 +290,17 @@ static void boot_prep_linux(bootm_headers_t *images)
 		boot_reloc_fdt(images);
 		boot_setup_fdt(images);
 	} else {
-		if (CONFIG_IS_ENABLED(CONFIG_MIPS_BOOT_ENV_LEGACY))
-			linux_env_legacy(images);
-
 		if (CONFIG_IS_ENABLED(MIPS_BOOT_CMDLINE_LEGACY)) {
 			linux_cmdline_legacy(images);
 
-			if (!CONFIG_IS_ENABLED(CONFIG_MIPS_BOOT_ENV_LEGACY))
+			if (!CONFIG_IS_ENABLED(MIPS_BOOT_ENV_LEGACY))
 				linux_cmdline_append(images);
 
 			linux_cmdline_dump();
 		}
+
+		if (CONFIG_IS_ENABLED(MIPS_BOOT_ENV_LEGACY))
+			linux_env_legacy(images);
 	}
 }
 

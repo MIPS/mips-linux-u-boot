@@ -1,0 +1,6 @@
+SEAD3 BOARD
+M:	Paul Burton <paul.burton@imgtec.com>
+S:	Maintained
+F:	board/imgtec/sead3/
+F:	include/configs/sead3.h
+F:	configs/sead3_defconfig
