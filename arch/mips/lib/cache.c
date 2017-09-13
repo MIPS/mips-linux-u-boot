@@ -6,9 +6,11 @@
  */
 
 #include <common.h>
+#include <asm/cache.h>
 #include <asm/cacheops.h>
 #include <asm/cm.h>
 #include <asm/mipsregs.h>
+#include <asm/system.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -114,7 +116,7 @@ void flush_cache(ulong start_addr, ulong size)
 		/* flush I-cache & D-cache simultaneously */
 		cache_loop(start_addr, start_addr + size, ilsize,
 			   HIT_WRITEBACK_INV_D, HIT_INVALIDATE_I);
-		return;
+		goto ops_done;
 	}
 
 	/* flush D-cache */
@@ -127,6 +129,13 @@ void flush_cache(ulong start_addr, ulong size)
 
 	/* flush I-cache */
 	cache_loop(start_addr, start_addr + size, ilsize, HIT_INVALIDATE_I);
+
+ops_done:
+	/* ensure cache ops complete before any further memory accesses */
+	sync();
+
+	/* ensure the pipeline doesn't contain now-invalid instructions */
+	instruction_hazard_barrier();
 }
 
 void flush_dcache_range(ulong start_addr, ulong stop)
@@ -143,6 +152,9 @@ void flush_dcache_range(ulong start_addr, ulong stop)
 	/* flush L2 cache */
 	if (slsize)
 		cache_loop(start_addr, stop, slsize, HIT_WRITEBACK_INV_SD);
+
+	/* ensure cache ops complete before any further memory accesses */
+	sync();
 }
 
 void invalidate_dcache_range(ulong start_addr, ulong stop)
@@ -159,4 +171,81 @@ void invalidate_dcache_range(ulong start_addr, ulong stop)
 		cache_loop(start_addr, stop, slsize, HIT_INVALIDATE_SD);
 
 	cache_loop(start_addr, stop, lsize, HIT_INVALIDATE_D);
+
+	/* ensure cache ops complete before any further memory accesses */
+	sync();
+}
+
+int kseg0_cache_status(void)
+{
+	unsigned int cca;
+
+	cca = read_c0_config() & CONF_CM_CMASK;
+
+	return cca != CONF_CM_UNCACHED;
+}
+
+int dcache_status(void) __alias(kseg0_cache_status);
+int icache_status(void) __alias(kseg0_cache_status);
+
+void kseg0_cache_enable(void)
+{
+	change_c0_config(CONF_CM_CMASK, CONFIG_SYS_MIPS_CACHE_MODE);
+	execution_hazard_barrier();
+}
+
+void dcache_enable(void) __alias(kseg0_cache_enable);
+void icache_enable(void) __alias(kseg0_cache_enable);
+
+void kseg0_cache_disable(void)
+{
+	__kseg0_cache_disable();
+}
+
+void dcache_disable(void) __alias(kseg0_cache_disable);
+void icache_disable(void) __alias(kseg0_cache_disable);
+
+void flush_dcache_all(void)
+{
+	unsigned int config1;
+	unsigned long sz, lsize = dcache_line_size();
+
+#ifdef CONFIG_SYS_CACHE_SIZE_AUTO
+	config1 = read_c0_config1();
+
+	sz = (config1 & MIPS_CONF1_DS) >> MIPS_CONF1_DS_SHF;
+	sz *= (config1 & MIPS_CONF1_DA) >> MIPS_CONF1_DA_SHF;
+	sz *= lsize;
+#else
+	sz = CONFIG_SYS_DCACHE_SIZE;
+#endif
+
+	cache_loop(CKSEG0ADDR(0), CKSEG0ADDR(sz), lsize, INDEX_WRITEBACK_INV_D);
+
+	/* ensure cache ops complete before any further memory accesses */
+	sync();
+}
+
+void invalidate_icache_all(void)
+{
+	unsigned int config1;
+	unsigned long sz, lsize = icache_line_size();
+
+#ifdef CONFIG_SYS_CACHE_SIZE_AUTO
+	config1 = read_c0_config1();
+
+	sz = (config1 & MIPS_CONF1_IS) >> MIPS_CONF1_IS_SHF;
+	sz *= (config1 & MIPS_CONF1_IA) >> MIPS_CONF1_IA_SHF;
+	sz *= lsize;
+#else
+	sz = CONFIG_SYS_ICACHE_SIZE;
+#endif
+
+	cache_loop(CKSEG0ADDR(0), CKSEG0ADDR(sz), lsize, INDEX_INVALIDATE_I);
+
+	/* ensure cache ops complete before any further fetches */
+	sync();
+
+	/* ensure the pipeline doesn't contain now-invalid instructions */
+	instruction_hazard_barrier();
 }
