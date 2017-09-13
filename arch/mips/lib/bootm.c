@@ -8,6 +8,7 @@
 #include <common.h>
 #include <image.h>
 #include <fdt_support.h>
+#include <linux/sizes.h>
 #include <asm/addrspace.h>
 #include <asm/io.h>
 
@@ -297,7 +298,7 @@ static void boot_jump_linux(bootm_headers_t *images)
 {
 	typedef void __noreturn (*kernel_entry_t)(int, ulong, ulong, ulong);
 	kernel_entry_t kernel = (kernel_entry_t) images->ep;
-	ulong linux_extra = 0;
+	ulong fdt_addr, linux_extra = 0;
 
 	debug("## Transferring control to Linux (at address %p) ...\n", kernel);
 
@@ -313,11 +314,17 @@ static void boot_jump_linux(bootm_headers_t *images)
 	bootstage_report();
 #endif
 
-	if (images->ft_len)
-		kernel(-2, (ulong)images->ft_addr, 0, 0);
-	else
+	if (images->ft_len) {
+		if (virt_to_phys(images->ft_addr) < SZ_512M)
+			fdt_addr = CKSEG0ADDR(virt_to_phys(images->ft_addr));
+		else
+			fdt_addr = (ulong)images->ft_addr;
+
+		kernel(-2, fdt_addr, 0, 0);
+	} else {
 		kernel(linux_argc, (ulong)linux_argv, (ulong)linux_env,
 			linux_extra);
+	}
 }
 
 int do_bootm_linux(int flag, int argc, char * const argv[],

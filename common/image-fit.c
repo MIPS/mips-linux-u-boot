@@ -702,6 +702,12 @@ static int fit_image_get_address(const void *fit, int noffset, char *name,
 		load64 = (load64 << 32) | uimage_to_cpu(*cell);
 		cell++;
 	}
+
+#if defined(CONFIG_MIPS) && defined(CONFIG_64BIT)
+	if (len == 4)
+		load64 = (s32)load64;
+#endif
+
 	*load = (ulong)load64;
 
 	return 0;
