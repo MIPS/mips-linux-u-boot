@@ -1,0 +1,23 @@
+v2017.01 452ba0c37615d650cbbc4ce5051b4e8519b8720c
+  remotes/origin/mpredfearn/eng/2017.01/boston b85fed2b34e3 boston: Increase max size of TFTP file name
+  remotes/origin/pburton/eng/2017.01/32on64    c1b20585f576 MIPS: Sign extend 32b uImage addresses on MIPS64
+  remotes/origin/pburton/eng/2017.01/ahci      244ed2e9cd5f ahci: Use dma_cache_* functions
+  remotes/origin/pburton/eng/2017.01/asm       c9c75b38238b MIPS: Enable assembly optimisation (reordering)
+  remotes/origin/pburton/eng/2017.01/bdinfo    50c7d49a51e6 boston: Print FPGA config from bdinfo
+  remotes/origin/pburton/eng/2017.01/boston    a97c50540e26 boston: Set dma-ranges when translation is required
+  remotes/origin/pburton/eng/2017.01/cache     882252a44f6e MIPS: Become coherent when L2 isn't bypassed
+  remotes/origin/pburton/eng/2017.01/cmd       7311c0280ddd MIPS: Add Endian command
+  remotes/origin/pburton/eng/2017.01/endian    5f3a2894fc97 MIPS: Detect incorrect FIT image kernel endianness
+  remotes/origin/pburton/eng/2017.01/eva       a6892cbe1e9e MIPS: Support for EVA boot
+  remotes/origin/pburton/eng/2017.01/fat       e78df300d31e MIPS: fat: Fat binary build support
+  remotes/origin/pburton/eng/2017.01/fdt       132f9be5b808 libfdt: allow non-64b aligned memreserve entries
+  remotes/origin/pburton/eng/2017.01/iocu      b38471e05ad4 boston: Set MMIO limits appropriately
+  remotes/origin/pburton/eng/2017.01/maar      9c939d5bdf1d MIPS: MAAR support
+  remotes/origin/pburton/eng/2017.01/malta     fc74ffd527e3 malta: Enable CMD_STRINGS
+  remotes/origin/pburton/eng/2017.01/net       a8b3349bedba net: Exit from eth_rx() if the net_state becomes NETLOOP_FAIL
+  remotes/origin/pburton/eng/2017.01/pci_mmc   e1ceb3df5add mmc: pci_mmc: Map BAR
+  remotes/origin/pburton/eng/2017.01/pcnet     6a8213eae5e9 pcnet: Use dev_dma_cache_* functions, support coherent I/O
+  remotes/origin/pburton/eng/2017.01/python3   1ce9ce831dfb dtoc: Handle byte-array fdt32_to_cpu case
+  remotes/origin/pburton/eng/2017.01/traps     2697ac37ed94 MIPS: Hardware trigger support
+  remotes/origin/pburton/eng/2017.01/watch     d9bf4295dc21 MIPS: Clear execution hazard during watchpoint probe
+  remotes/origin/zkakakhel/eng/2017.01/sead3   3a9af36063fb MIPS: bootm: Fix broken boot_env_legacy codepath
