@@ -30,6 +30,19 @@ config SYS_PROMPT
 	  This string is displayed in the command line to the left of the
 	  cursor.
 
+config RETURN_TO_CLI_AFTER_EXCEPTION
+	bool "Return to CLI after exceptions"
+	default y
+	depends on HAVE_ARCH_SETJMP
+	help
+	  Enable this to return to the CLI after an exception occurs. This
+	  carries some amount of risk in that the user could theoretically
+	  corrupt U-Boot or its state such that returning to the CLI results
+	  in further errors, but in most cases it results in mis-typed or
+	  simply incorrect commands becoming non-fatal allowing the user to
+	  simply correct them & continue, rather than needing to reboot & start
+	  over.
+
 menu "Autoboot options"
 
 config AUTOBOOT

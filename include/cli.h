@@ -154,4 +154,12 @@ void cli_init(void);
 
 #define endtick(seconds) (get_ticks() + (uint64_t)(seconds) * get_tbclk())
 
+/**
+ * cli_longjmp() - Return to the CLI loop via longjmp()
+ *
+ * Call this to return to the CLI loop. cli_loop() must previously have been
+ * called & still be running.
+ */
+void __noreturn cli_longjmp(void);
+
 #endif
