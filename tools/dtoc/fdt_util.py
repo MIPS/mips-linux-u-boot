@@ -23,7 +23,7 @@ def fdt32_to_cpu(val):
     Return:
         A native-endian integer value
     """
-    if sys.version_info > (3, 0):
+    if sys.version_info > (3, 0) and isinstance(val, str):
         val = val.encode('raw_unicode_escape')
     return struct.unpack('>I', val)[0]
 

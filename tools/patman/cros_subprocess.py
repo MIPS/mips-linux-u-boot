@@ -189,7 +189,7 @@ class Popen(subprocess.Popen):
                 data = ""
                 # We will get an error on read if the pty is closed
                 try:
-                    data = os.read(self.stdout.fileno(), 1024)
+                    data = os.read(self.stdout.fileno(), 1024).decode('utf8')
                 except OSError:
                     pass
                 if data == "":
@@ -204,7 +204,7 @@ class Popen(subprocess.Popen):
                 data = ""
                 # We will get an error on read if the pty is closed
                 try:
-                    data = os.read(self.stderr.fileno(), 1024)
+                    data = os.read(self.stderr.fileno(), 1024).decode('utf8')
                 except OSError:
                     pass
                 if data == "":
