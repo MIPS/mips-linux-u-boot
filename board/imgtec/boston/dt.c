@@ -29,7 +29,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 	int mem_regions, off;
 	bool coherent, enabled;
 	ulong phys;
-	u32 upper, build_cfg;
+	u32 upper, build_cfg, ddr_cfg;
 	const fdt32_t *reg;
 	fdt32_t prop_val;
 
@@ -81,6 +81,31 @@ int ft_board_setup(void *blob, bd_t *bd)
 				   enabled ? "okay" : "disabled");
 
 		off = fdt_node_offset_by_compatible(blob, off, "xlnx,axi-pcie-host-1.00.a");
+	}
+
+	/*
+	 * Musket adds 0x80000000 to addresses from Xilinx PCIe DMA masters on
+	 * some systems (in order to expand the accessible DDR beyond that
+	 * available in the 32 bit CPU physical address map, with only a 32 bit
+	 * DMA address bus). Indicate that adjustment in dma-ranges.
+	 */
+	ddr_cfg = readl((u32 *)BOSTON_PLAT_DDRCONF0);
+	if (ddr_cfg & (1 << 16)) {
+		fdt32_t dma_ranges[6];
+
+		/* DMA address zero */
+		dma_ranges[0] = cpu_to_fdt32(0);
+		dma_ranges[1] = cpu_to_fdt32(0);
+
+		/* Corresponds to CPU physical address... */
+		dma_ranges[2] = cpu_to_fdt32(0);
+		dma_ranges[3] = cpu_to_fdt32(0x80000000);
+
+		/* With a size matching that of DDR */
+		dma_ranges[4] = cpu_to_fdt32(gd->ram_size >> 32);
+		dma_ranges[5] = cpu_to_fdt32(gd->ram_size);
+
+		fdt_setprop(blob, 0, "dma-ranges", &dma_ranges, sizeof(dma_ranges));
 	}
 
 	mem_start[0] = 0;
