@@ -19,6 +19,8 @@
 
 #include <asm/relocs.h>
 
+#define ALIGN(n, a)	(((n) + (a) - 1) & ~((a) - 1))
+
 #ifndef EM_NANOMIPS
 # define EM_NANOMIPS 249
 #endif
@@ -438,7 +440,7 @@ int main(int argc, char *argv[])
 
 	/* Ensure the relocs didn't overflow the .rel section */
 	rel_size = shdr_field(i_rel_shdr, sh_size);
-	rel_actual_size = buf - buf_start;
+	rel_actual_size = ALIGN(buf - buf_start, 16);
 	if (rel_actual_size > rel_size) {
 		fprintf(stderr, "Relocs overflowed .rel section\n");
 		return -ENOMEM;
