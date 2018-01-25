@@ -153,6 +153,7 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 	unsigned int time = 0, start_addr = 0;
 	int mmc_dev = mmc_get_blk_desc(mmc)->devnum;
 	unsigned start = get_timer(0);
+	void *start_vaddr = NULL;
 
 	/* Timeout unit - ms */
 	static unsigned int cmd_timeout = SDHCI_CMD_DEFAULT_TIMEOUT;
@@ -213,13 +214,13 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 
 #ifdef CONFIG_MMC_SDHCI_SDMA
 		if (data->flags == MMC_DATA_READ)
-			start_addr = (unsigned long)data->dest;
+			start_vaddr = data->dest;
 		else
-			start_addr = (unsigned long)data->src;
+			start_vaddr = (void *)data->src;
 		if ((host->quirks & SDHCI_QUIRK_32BIT_DMA_ADDR) &&
-				(start_addr & 0x7) != 0x0) {
+				((unsigned long)start_vaddr & 0x7) != 0x0) {
 			is_aligned = 0;
-			start_addr = (unsigned long)aligned_buffer;
+			start_vaddr = aligned_buffer;
 			if (data->flags != MMC_DATA_READ)
 				memcpy(aligned_buffer, data->src, trans_bytes);
 		}
@@ -230,11 +231,12 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 		 * CONFIG_FIXED_SDHCI_ALIGNED_BUFFER is defined
 		 */
 		is_aligned = 0;
-		start_addr = (unsigned long)aligned_buffer;
+		start_vaddr = aligned_buffer;
 		if (data->flags != MMC_DATA_READ)
 			memcpy(aligned_buffer, data->src, trans_bytes);
 #endif
 
+		start_addr = virt_to_phys(start_vaddr);
 		sdhci_writel(host, start_addr, SDHCI_DMA_ADDRESS);
 		mode |= SDHCI_TRNS_DMA;
 #endif
@@ -251,7 +253,7 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 #ifdef CONFIG_MMC_SDHCI_SDMA
 	if (data != 0) {
 		trans_bytes = ALIGN(trans_bytes, CONFIG_SYS_CACHELINE_SIZE);
-		flush_cache(start_addr, trans_bytes);
+		flush_cache((unsigned long)start_vaddr, trans_bytes);
 	}
 #endif
 	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->cmdidx, flags), SDHCI_COMMAND);
