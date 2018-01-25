@@ -74,4 +74,9 @@
  */
 #define CONFIG_PHY_REALTEK
 
+/*
+* Miscellaneous
+ */
+#define CONFIG_BOARD_EARLY_INIT_R
+
 #endif /* __CONFIGS_BOSTON_H__ */
