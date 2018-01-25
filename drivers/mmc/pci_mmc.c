@@ -10,8 +10,8 @@
 #include <errno.h>
 #include <malloc.h>
 #include <mapmem.h>
+#include <pci.h>
 #include <sdhci.h>
-#include <asm/pci.h>
 
 struct pci_mmc_plat {
 	struct mmc_config cfg;
