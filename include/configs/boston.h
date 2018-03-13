@@ -82,6 +82,7 @@
  * Ethernet
  */
 #define CONFIG_PHY_REALTEK
+#define CONFIG_BOOTP_SERVERIP
 
 /*
 * Miscellaneous
