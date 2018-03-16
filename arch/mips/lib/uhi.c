@@ -10,6 +10,7 @@
 #include <asm/compiler.h>
 #include <asm/mipsregs.h>
 #include <asm/uhi.h>
+#include <cli.h>
 
 enum uhi_op {
 	MIPS_UHI_EXIT = 1,
@@ -27,7 +28,8 @@ int mips_uhi_handle(struct pt_regs *regs)
 
 	switch (regs->regs[25]) {
 	case MIPS_UHI_EXIT:
-		regs->regs[2] = regs->regs[4];
+		set_return_code(regs->regs[4]);
+		cli_longjmp();
 		break;
 
 	case MIPS_UHI_READ:
