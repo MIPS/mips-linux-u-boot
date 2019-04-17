@@ -53,7 +53,7 @@
 /*
  * Environment
  */
-#define CONFIG_ENV_SECT_SIZE		0x20000
+#define CONFIG_ENV_SECT_SIZE		0x40000
 #define CONFIG_ENV_SIZE			CONFIG_ENV_SECT_SIZE
 #ifdef CONFIG_64BIT
 # define CONFIG_ENV_ADDR \

@@ -5,7 +5,9 @@
 
 #include <common.h>
 
+#include <asm/addrspace.h>
 #include <asm/io.h>
+#include <linux/sizes.h>
 
 #include "boston-regs.h"
 
@@ -17,6 +19,15 @@ int dram_init(void)
 
 	gd->ram_size = (phys_size_t)(ddrconf0 & BOSTON_PLAT_DDRCONF0_SIZE) <<
 			30;
+
+	return 0;
+}
+
+int dram_init_banksize(void)
+{
+	gd->bd->bi_dram[0].start = CKSEG0ADDR(0);
+	gd->bd->bi_dram[0].size =
+		min_t(phys_size_t, get_effective_memsize(), SZ_256M);
 
 	return 0;
 }
