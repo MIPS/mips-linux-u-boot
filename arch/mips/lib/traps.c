@@ -42,8 +42,10 @@ static void show_regs(const struct pt_regs *regs)
 			puts("\n");
 	}
 
-	printf("Hi    : %0*lx\n", field, regs->hi);
-	printf("Lo    : %0*lx\n", field, regs->lo);
+	if (__mips_isa_rev < 6) {
+		printf("Hi    : %0*lx\n", field, regs->hi);
+		printf("Lo    : %0*lx\n", field, regs->lo);
+	}
 
 	/*
 	 * Saved cp0 registers
