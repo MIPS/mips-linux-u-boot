@@ -7,3 +7,5 @@ obj-y += interrupts.o
 obj-y += cpu.o
 
 obj-$(CONFIG_MIPS_CM)	+= cm_init.o
+
+obj-$(CONFIG_CPU)	+= cpu-driver.o

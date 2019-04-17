@@ -362,6 +362,26 @@
 #define CAUSEF_BD		(_ULCAST_(1)   << 31)
 
 /*
+ * Bits in the coprocessor 0 PRID register.
+ */
+#define PRID_COMPANY_SHF		16
+#define PRID_COMPANY			(_ULCAST_(0xff) << 16)
+#define PRID_COMPANY_LEGACY		(_ULCAST_(0x00) << 16)
+#define PRID_COMPANY_MTI_IMG		(_ULCAST_(0x01) << 16)
+#define PRID_PROCESSOR_SHF		8
+#define PRID_PROCESSOR			(_ULCAST_(0xff) << 8)
+#define PRID_PROCESSOR_MTI_INTERAPTIVUP	(_ULCAST_(0xa0) << 8)
+#define PRID_PROCESSOR_MTI_INTERAPTIVMP	(_ULCAST_(0xa1) << 8)
+#define PRID_PROCESSOR_MTI_PROAPTIVUP	(_ULCAST_(0xa2) << 8)
+#define PRID_PROCESSOR_MTI_PROAPTIVMP	(_ULCAST_(0xa3) << 8)
+#define PRID_PROCESSOR_IMG_P6600	(_ULCAST_(0xa4) << 8)
+#define PRID_PROCESSOR_IMG_M5150	(_ULCAST_(0xa7) << 8)
+#define PRID_PROCESSOR_IMG_P5600	(_ULCAST_(0xa8) << 8)
+#define PRID_PROCESSOR_IMG_I6400	(_ULCAST_(0xa9) << 8)
+#define PRID_PROCESSOR_IMG_M6250	(_ULCAST_(0xab) << 8)
+#define PRID_PROCESSOR_IMG_I6500	(_ULCAST_(0xb0) << 8)
+
+/*
  * Bits in the coprocessor 0 EBase register.
  */
 #define EBASE_CPUNUM		0x3ff

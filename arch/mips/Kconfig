@@ -154,6 +154,7 @@ source "arch/mips/mach-bmips/Kconfig"
 source "arch/mips/mach-jz47xx/Kconfig"
 source "arch/mips/mach-pic32/Kconfig"
 source "arch/mips/mach-mt7620/Kconfig"
+source "arch/mips/cmd/Kconfig"
 
 if MIPS
 
