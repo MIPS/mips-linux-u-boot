@@ -7,10 +7,13 @@
 
 #include <common.h>
 #include <dm.h>
+#include <environment.h>
 #include <errno.h>
 #include <asm/io.h>
 #include <pci.h>
 #include <miiphy.h>
+#include <asm/gpio.h>
+#include <wait_bit.h>
 #include "pch_gbe.h"
 
 #if !defined(CONFIG_PHYLIB)
@@ -30,6 +33,11 @@ static void pch_gbe_mac_read(struct pch_gbe_regs *mac_regs, u8 *addr)
 	macid_lo = readl(&mac_regs->mac_adr[0].low) & 0xffff;
 	debug("pch_gbe: macid_hi %#x macid_lo %#x\n", macid_hi, macid_lo);
 
+	if (!macid_lo && !macid_hi) {
+		if (eth_env_get_enetaddr("ethaddr", addr))
+			return;
+	}
+
 	addr[0] = (u8)(macid_hi & 0xff);
 	addr[1] = (u8)((macid_hi >> 8) & 0xff);
 	addr[2] = (u8)((macid_hi >> 16) & 0xff);
@@ -41,7 +49,6 @@ static void pch_gbe_mac_read(struct pch_gbe_regs *mac_regs, u8 *addr)
 static int pch_gbe_mac_write(struct pch_gbe_regs *mac_regs, u8 *addr)
 {
 	u32 macid_hi, macid_lo;
-	ulong start;
 
 	macid_hi = addr[0] + (addr[1] << 8) + (addr[2] << 16) + (addr[3] << 24);
 	macid_lo = addr[4] + (addr[5] << 8);
@@ -50,15 +57,8 @@ static int pch_gbe_mac_write(struct pch_gbe_regs *mac_regs, u8 *addr)
 	writel(macid_lo, &mac_regs->mac_adr[0].low);
 	writel(0xfffe, &mac_regs->addr_mask);
 
-	start = get_timer(0);
-	while (get_timer(start) < PCH_GBE_TIMEOUT) {
-		if (!(readl(&mac_regs->addr_mask) & PCH_GBE_BUSY))
-			return 0;
-
-		udelay(10);
-	}
-
-	return -ETIME;
+	return wait_for_bit_le32(&mac_regs->addr_mask, PCH_GBE_BUSY, false,
+				 PCH_GBE_TIMEOUT, false);
 }
 
 static int pch_gbe_reset(struct udevice *dev)
@@ -66,10 +66,18 @@ static int pch_gbe_reset(struct udevice *dev)
 	struct pch_gbe_priv *priv = dev_get_priv(dev);
 	struct eth_pdata *plat = dev_get_platdata(dev);
 	struct pch_gbe_regs *mac_regs = priv->mac_regs;
-	ulong start;
+	int err;
 
 	priv->rx_idx = 0;
 	priv->tx_idx = 0;
+
+	if (dm_gpio_is_valid(&priv->gpio_phy_reset)) {
+		/* Reset the PHY */
+		dm_gpio_set_value(&priv->gpio_phy_reset, 1);
+		udelay(15000);
+		dm_gpio_set_value(&priv->gpio_phy_reset, 0);
+		udelay(5000);
+	}
 
 	writel(PCH_GBE_ALL_RST, &mac_regs->reset);
 
@@ -89,22 +97,17 @@ static int pch_gbe_reset(struct udevice *dev)
 	writel(PCH_GBE_RGMII_MODE_RGMII | PCH_GBE_CHIP_TYPE_INTERNAL,
 	       &mac_regs->rgmii_ctrl);
 
-	start = get_timer(0);
-	while (get_timer(start) < PCH_GBE_TIMEOUT) {
-		if (!(readl(&mac_regs->reset) & PCH_GBE_ALL_RST)) {
-			/*
-			 * Soft reset clears hardware MAC address registers,
-			 * so we have to reload MAC address here in order to
-			 * make linux pch_gbe driver happy.
-			 */
-			return pch_gbe_mac_write(mac_regs, plat->enetaddr);
-		}
+	err = wait_for_bit_le32(&mac_regs->reset, PCH_GBE_ALL_RST, false,
+				PCH_GBE_TIMEOUT, false);
+	if (err)
+		return err;
 
-		udelay(10);
-	}
-
-	debug("pch_gbe: reset timeout\n");
-	return -ETIME;
+	/*
+	 * Soft reset clears hardware MAC address registers,
+	 * so we have to reload MAC address here in order to
+	 * make linux pch_gbe driver happy.
+	 */
+	return pch_gbe_mac_write(mac_regs, plat->enetaddr);
 }
 
 static void pch_gbe_rx_descs_init(struct udevice *dev)
@@ -245,8 +248,6 @@ static int pch_gbe_send(struct udevice *dev, void *packet, int length)
 	struct pch_gbe_regs *mac_regs = priv->mac_regs;
 	struct pch_gbe_tx_desc *tx_head, *tx_desc;
 	u16 frame_ctrl = 0;
-	u32 int_st;
-	ulong start;
 
 	flush_dcache_range((ulong)packet, (ulong)packet + length);
 
@@ -272,17 +273,8 @@ static int pch_gbe_send(struct udevice *dev, void *packet, int length)
 	writel(dm_pci_virt_to_mem(priv->dev, tx_head + priv->tx_idx),
 	       &mac_regs->tx_dsc_sw_p);
 
-	start = get_timer(0);
-	while (get_timer(start) < PCH_GBE_TIMEOUT) {
-		int_st = readl(&mac_regs->int_st);
-		if (int_st & PCH_GBE_INT_TX_CMPLT)
-			return 0;
-
-		udelay(10);
-	}
-
-	debug("pch_gbe: sent failed\n");
-	return -ETIME;
+	return wait_for_bit_le32(&mac_regs->int_st, PCH_GBE_INT_TX_CMPLT, true,
+				 PCH_GBE_TIMEOUT, false);
 }
 
 static int pch_gbe_recv(struct udevice *dev, int flags, uchar **packetp)
@@ -335,16 +327,8 @@ static int pch_gbe_free_pkt(struct udevice *dev, uchar *packet, int length)
 
 static int pch_gbe_mdio_ready(struct pch_gbe_regs *mac_regs)
 {
-	ulong start = get_timer(0);
-
-	while (get_timer(start) < PCH_GBE_TIMEOUT) {
-		if (readl(&mac_regs->miim) & PCH_GBE_MIIM_OPER_READY)
-			return 0;
-
-		udelay(10);
-	}
-
-	return -ETIME;
+	return wait_for_bit_le32(&mac_regs->miim, PCH_GBE_MIIM_OPER_READY,
+				 true, PCH_GBE_TIMEOUT, false);
 }
 
 static int pch_gbe_mdio_read(struct mii_dev *bus, int addr, int devad, int reg)
@@ -450,6 +434,11 @@ static int pch_gbe_probe(struct udevice *dev)
 	plat->iobase = (ulong)iobase;
 	priv->mac_regs = (struct pch_gbe_regs *)iobase;
 
+	err = gpio_request_by_name(dev, "phy-reset-gpios", 0,
+				   &priv->gpio_phy_reset, GPIOD_IS_OUT);
+	if (err && (err != -ENOENT))
+		return err;
+
 	/* Read MAC address from SROM and initialize dev->enetaddr with it */
 	pch_gbe_mac_read(priv->mac_regs, plat->enetaddr);
 
@@ -459,9 +448,17 @@ static int pch_gbe_probe(struct udevice *dev)
 
 	err = pch_gbe_reset(dev);
 	if (err)
-		return err;
+		goto out_err;
 
-	return pch_gbe_phy_init(dev);
+	err = pch_gbe_phy_init(dev);
+	if (err)
+		goto out_err;
+
+	return 0;
+out_err:
+	if (dm_gpio_is_valid(&priv->gpio_phy_reset))
+		dm_gpio_free(dev, &priv->gpio_phy_reset);
+	return err;
 }
 
 static int pch_gbe_remove(struct udevice *dev)
@@ -471,6 +468,9 @@ static int pch_gbe_remove(struct udevice *dev)
 	free(priv->phydev);
 	mdio_unregister(priv->bus);
 	mdio_free(priv->bus);
+
+	if (dm_gpio_is_valid(&priv->gpio_phy_reset))
+		dm_gpio_free(dev, &priv->gpio_phy_reset);
 
 	return 0;
 }

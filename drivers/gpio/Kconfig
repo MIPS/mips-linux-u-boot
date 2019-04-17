@@ -356,4 +356,11 @@ config MT7621_GPIO
 	help
 	  Say yes here to support MediaTek MT7621 compatible GPIOs.
 
+config EG20T_GPIO
+	bool "Intel EG20T GPIO driver"
+	depends on DM_GPIO && DM_PCI
+	help
+	  Enable this to support the GPIO controller found in the Intel EG20T
+	  Platform Controller Hub.
+
 endmenu

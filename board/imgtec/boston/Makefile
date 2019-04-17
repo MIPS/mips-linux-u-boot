@@ -7,3 +7,4 @@ obj-y += ddr.o
 obj-y += dt.o
 obj-y += lowlevel_init.o
 obj-y += display.o
+obj-y += misc_init_r.o

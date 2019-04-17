@@ -19,6 +19,7 @@
 /*
  * PCI
  */
+#define CONFIG_SYS_PCI_64BIT
 
 /*
  * Memory map

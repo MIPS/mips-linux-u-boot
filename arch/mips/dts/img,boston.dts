@@ -131,7 +131,7 @@
 		};
 
 		pci2_root@0,0,0 {
-			compatible = "pci10ee,7021";
+			compatible = "pci10ee,7021", "pci-bridge";
 			reg = <0x00000000 0 0 0 0>;
 
 			#address-cells = <3>;
@@ -139,7 +139,7 @@
 			#interrupt-cells = <1>;
 
 			eg20t_bridge@1,0,0 {
-				compatible = "pci8086,8800";
+				compatible = "pci8086,8800", "pci-bridge";
 				reg = <0x00010000 0 0 0 0>;
 
 				#address-cells = <3>;
@@ -147,13 +147,13 @@
 				#interrupt-cells = <1>;
 
 				eg20t_mac@2,0,1 {
-					compatible = "pci8086,8802";
+					compatible = "pci8086,8802", "intel,pch-gbe";
 					reg = <0x00020100 0 0 0 0>;
 					phy-reset-gpios = <&eg20t_gpio 6 GPIO_ACTIVE_LOW>;
 				};
 
 				eg20t_gpio: eg20t_gpio@2,0,2 {
-					compatible = "pci8086,8803";
+					compatible = "pci8086,8803", "intel,eg20t-gpio";
 					reg = <0x00020200 0 0 0 0>;
 
 					gpio-controller;
