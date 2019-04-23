@@ -14,6 +14,7 @@
 int checkboard(void)
 {
 	u32 changelist;
+	u32 cfg;
 
 	lowlevel_display("U-boot  ");
 
@@ -23,6 +24,18 @@ int checkboard(void)
 	changelist = __raw_readl((uint32_t *)BOSTON_PLAT_CORE_CL);
 	if (changelist > 1)
 		printf(" cl%x", changelist);
+
+	printf(" config ");
+
+	cfg = readl((u32 *)BOSTON_PLAT_BUILDCFG0);
+
+	if ((cfg & BOSTON_PLAT_BUILDCFG0_CFG_NUM) != 0)
+		printf("%u", (cfg & BOSTON_PLAT_BUILDCFG0_CFG_NUM) >> 8);
+
+	if ((cfg & BOSTON_PLAT_BUILDCFG0_CFG_LTR) != 0)
+		printf("%c",
+		    'a' + ((cfg & BOSTON_PLAT_BUILDCFG0_CFG_LTR) >> 4) - 1);
+
 	putc('\n');
 
 	return 0;
