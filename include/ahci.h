@@ -139,8 +139,8 @@ struct ahci_ioports {
 	void __iomem	*port_mmio;
 	struct ahci_cmd_hdr	*cmd_slot;
 	struct ahci_sg		*cmd_tbl_sg;
-	ulong	cmd_tbl;
-	u32	rx_fis;
+	void __iomem	*cmd_tbl;
+	void __iomem	*rx_fis;
 };
 
 /**
