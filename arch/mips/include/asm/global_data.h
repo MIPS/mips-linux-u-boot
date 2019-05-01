@@ -27,6 +27,10 @@ struct arch_global_data {
 #ifdef CONFIG_MIPS_L2_CACHE
 	unsigned short l2_line_size;
 #endif
+#ifdef CONFIG_MIPS_CM_IOCU
+	int num_iocus;
+	int num_iocus_usable;
+#endif
 };
 
 #include <asm-generic/global_data.h>

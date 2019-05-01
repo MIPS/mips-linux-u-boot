@@ -62,6 +62,11 @@ struct driver_info;
 #define DM_FLAG_OS_PREPARE		(1 << 10)
 
 /*
+ * DMA is cache-coherent, so we don't need to perform cache maintenance
+ */
+#define DM_FLAG_DMA_CACHE_COHERENT	(1 << 11)
+
+/*
  * One or multiple of these flags are passed to device_remove() so that
  * a selective device removal as specified by the remove-stage and the
  * driver flags can be done.
@@ -694,6 +699,33 @@ static inline bool device_is_on_pci_bus(struct udevice *dev)
  * @return 0 if OK, -ve on error
  */
 int dm_scan_fdt_dev(struct udevice *dev);
+
+static inline bool dev_dma_coherent(struct udevice *dev)
+{
+	DECLARE_GLOBAL_DATA_PTR;
+
+	if (dev && (dev->flags & DM_FLAG_DMA_CACHE_COHERENT))
+		return true;
+
+	if (gd->flags & GD_FLG_COHERENT_DMA)
+		return true;
+
+	return false;
+}
+
+static inline void dev_dma_cache_writeback(struct udevice *dev,
+					   ulong start, ulong end)
+{
+	if (!dev_dma_coherent(dev))
+		flush_dcache_range(start, end);
+}
+
+static inline void dev_dma_cache_invalidate(struct udevice *dev,
+					    ulong start, ulong end)
+{
+	if (!dev_dma_coherent(dev))
+		invalidate_dcache_range(start, end);
+}
 
 /* device resource management */
 typedef void (*dr_release_t)(struct udevice *dev, void *res);

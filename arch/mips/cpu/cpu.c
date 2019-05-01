@@ -8,6 +8,7 @@
 #include <command.h>
 #include <linux/compiler.h>
 #include <asm/cache.h>
+#include <asm/cm.h>
 #include <asm/mipsregs.h>
 #include <asm/reboot.h>
 
@@ -30,6 +31,15 @@ int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 int arch_cpu_init(void)
 {
+	int err;
+
 	mips_cache_probe();
+
+	if (CONFIG_IS_ENABLED(MIPS_CM)) {
+		err = mips_cm_init();
+		if (err)
+			return err;
+	}
+
 	return 0;
 }

@@ -65,6 +65,12 @@
 #endif
 
 /*
+ * Static env callback for the IOCU.
+ */
+#define CONFIG_ENV_CALLBACK_LIST_STATIC \
+	"io" ENV_DOT_ESCAPE ".coherent:io_coherent,"
+
+/*
  * SATA
  */
 #define CONFIG_SYS_SCSI_MAX_SCSI_ID	2
@@ -72,5 +78,10 @@
 #define CONFIG_SYS_SCSI_MAX_LUN		1
 #define CONFIG_SCSI_DEV_LIST \
 	{ PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_TCF_SATA }
+
+/*
+ * Miscellaneous IOCU init.
+ */
+#define CONFIG_MISC_INIT_F
 
 #endif /* __CONFIGS_BOSTON_H__ */

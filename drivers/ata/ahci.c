@@ -74,7 +74,7 @@ static void ahci_dcache_flush_range(unsigned long begin, unsigned long len)
 	const unsigned long end = start + len;
 
 	debug("%s: flush dcache: [%#lx, %#lx)\n", __func__, start, end);
-	flush_dcache_range(start, end);
+	dev_dma_cache_writeback(NULL, start, end);
 }
 
 /*
@@ -88,7 +88,7 @@ static void ahci_dcache_invalidate_range(unsigned long begin, unsigned long len)
 	const unsigned long end = start + len;
 
 	debug("%s: invalidate dcache: [%#lx, %#lx)\n", __func__, start, end);
-	invalidate_dcache_range(start, end);
+	dev_dma_cache_invalidate(NULL, start, end);
 }
 
 /*
