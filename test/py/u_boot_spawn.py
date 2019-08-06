@@ -59,7 +59,7 @@ class Spawn(object):
                     os.chdir(cwd)
                 os.execvp(args[0], args)
             except:
-                print 'CHILD EXECEPTION:'
+                print('CHILD EXECEPTION:')
                 import traceback
                 traceback.print_exc()
             finally:
@@ -114,7 +114,7 @@ class Spawn(object):
             Nothing.
         """
 
-        os.write(self.fd, data)
+        os.write(self.fd, data.encode('utf8'))
 
     def expect(self, patterns):
         """Wait for the sub-process to emit specific data.
@@ -135,7 +135,7 @@ class Spawn(object):
             the expected time.
         """
 
-        for pi in xrange(len(patterns)):
+        for pi in range(len(patterns)):
             if type(patterns[pi]) == type(''):
                 patterns[pi] = re.compile(patterns[pi])
 
@@ -144,7 +144,7 @@ class Spawn(object):
             while True:
                 earliest_m = None
                 earliest_pi = None
-                for pi in xrange(len(patterns)):
+                for pi in range(len(patterns)):
                     pattern = patterns[pi]
                     m = pattern.search(self.buf)
                     if not m:
@@ -172,7 +172,7 @@ class Spawn(object):
                 events = self.poll.poll(poll_maxwait)
                 if not events:
                     raise Timeout()
-                c = os.read(self.fd, 1024)
+                c = os.read(self.fd, 1024).decode('utf8')
                 if not c:
                     raise EOFError()
                 if self.logfile_read:
@@ -199,7 +199,7 @@ class Spawn(object):
         """
 
         os.close(self.fd)
-        for i in xrange(100):
+        for i in range(100):
             if not self.isalive():
                 break
             time.sleep(0.1)

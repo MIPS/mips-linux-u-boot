@@ -121,7 +121,7 @@ def wait_until_open_succeeds(fn):
         An open file handle to the file.
     """
 
-    for i in xrange(100):
+    for i in range(100):
         fh = attempt_to_open_file(fn)
         if fh:
             return fh
@@ -144,7 +144,7 @@ def wait_until_file_open_fails(fn, ignore_errors):
         Nothing.
     """
 
-    for i in xrange(100):
+    for i in range(100):
         fh = attempt_to_open_file(fn)
         if not fh:
             return
