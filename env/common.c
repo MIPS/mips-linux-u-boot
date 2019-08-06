@@ -153,7 +153,7 @@ static inline int env_aes_cbc_crypt(env_t *env, const int enc)
  * Check if CRC is valid and (if yes) import the environment.
  * Note that "buf" may or may not be aligned.
  */
-int env_import(const char *buf, int check)
+static int _env_import(const char *buf, int check, ulong sz)
 {
 	env_t *ep = (env_t *)buf;
 	int ret;
@@ -163,7 +163,7 @@ int env_import(const char *buf, int check)
 
 		memcpy(&crc, &ep->crc, sizeof(crc));
 
-		if (crc32(0, ep->data, ENV_SIZE) != crc) {
+		if (crc32(0, ep->data, sz) != crc) {
 			set_default_env("!bad CRC");
 			return 0;
 		}
@@ -177,7 +177,7 @@ int env_import(const char *buf, int check)
 		return ret;
 	}
 
-	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', 0, 0,
+	if (himport_r(&env_htab, (char *)ep->data, sz, '\0', 0, 0,
 			0, NULL)) {
 		gd->flags |= GD_FLG_ENV_READY;
 		return 1;
@@ -188,6 +188,11 @@ int env_import(const char *buf, int check)
 	set_default_env("!import failed");
 
 	return 0;
+}
+
+int env_import(const char *buf, int check)
+{
+	return _env_import(buf, check, ENV_SIZE);
 }
 
 #ifdef CONFIG_SYS_REDUNDAND_ENVIRONMENT
@@ -272,6 +277,11 @@ void env_relocate(void)
 	env_htab.change_ok += gd->reloc_off;
 #endif
 	if (gd->env_valid == ENV_INVALID) {
+#ifdef CONFIG_TARGET_BOSTON
+		/* Try to import from legacy env location */
+		if (_env_import((char *)0xffffffff9ffe0000, 1, 0x20000 - ENV_HEADER_SIZE) == 1)
+			return;
+#endif
 #if defined(CONFIG_ENV_IS_NOWHERE) || defined(CONFIG_SPL_BUILD)
 		/* Environment not changable */
 		set_default_env(NULL);
