@@ -85,8 +85,9 @@
 #define CONFIG_BOOTP_SERVERIP
 
 /*
-* Miscellaneous
+ * Miscellaneous
  */
 #define CONFIG_BOARD_EARLY_INIT_R
+#define CONFIG_MISC_INIT_R
 
 #endif /* __CONFIGS_BOSTON_H__ */

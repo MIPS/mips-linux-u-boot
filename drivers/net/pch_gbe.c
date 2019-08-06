@@ -33,6 +33,11 @@ static void pch_gbe_mac_read(struct pch_gbe_regs *mac_regs, u8 *addr)
 	macid_lo = readl(&mac_regs->mac_adr[0].low) & 0xffff;
 	debug("pch_gbe: macid_hi %#x macid_lo %#x\n", macid_hi, macid_lo);
 
+	if (!macid_lo && !macid_hi) {
+		if (eth_env_get_enetaddr("ethaddr", addr))
+			return;
+	}
+
 	addr[0] = (u8)(macid_hi & 0xff);
 	addr[1] = (u8)((macid_hi >> 8) & 0xff);
 	addr[2] = (u8)((macid_hi >> 16) & 0xff);
