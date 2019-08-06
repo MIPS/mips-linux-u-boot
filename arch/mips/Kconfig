@@ -109,6 +109,20 @@ config TARGET_BOSTON
 	select SUPPORTS_CPU_MIPS64_R6
 	select ROM_EXCEPTION_VECTORS
 
+config TARGET_SEAD_3
+	bool "Support SEAD-3"
+	select DM
+	select DM_SERIAL
+	select OF_CONTROL
+	select MIPS_CM
+	select MIPS_L1_CACHE_SHIFT_6
+	select SUPPORTS_BIG_ENDIAN
+	select SUPPORTS_LITTLE_ENDIAN
+	select SUPPORTS_CPU_MIPS32_R1
+	select SUPPORTS_CPU_MIPS32_R2
+	select SUPPORTS_CPU_MIPS32_R6
+	select ROM_EXCEPTION_VECTORS
+
 config TARGET_XILFPGA
 	bool "Support Imagination Xilfpga"
 	select OF_CONTROL
@@ -129,6 +143,7 @@ endchoice
 source "board/dbau1x00/Kconfig"
 source "board/imgtec/boston/Kconfig"
 source "board/imgtec/malta/Kconfig"
+source "board/imgtec/sead-3/Kconfig"
 source "board/imgtec/xilfpga/Kconfig"
 source "board/micronas/vct/Kconfig"
 source "board/pb1x00/Kconfig"

@@ -13,42 +13,32 @@
 
 #define DRIVERNAME "smc911x"
 
+struct chip_id {
+	u16 id;
+	char *name;
+};
+
+struct smc911x_priv {
+#ifdef CONFIG_DM_ETH
+	struct udevice *dev;
+	unsigned int io_width;
+#else
+	struct eth_device eth;
+#endif
+	const struct chip_id *chip_id;
+};
+
 #if defined (CONFIG_SMC911X_32_BIT) && \
 	defined (CONFIG_SMC911X_16_BIT)
 #error "SMC911X: Only one of CONFIG_SMC911X_32_BIT and \
 	CONFIG_SMC911X_16_BIT shall be set"
 #endif
 
-#if defined (CONFIG_SMC911X_32_BIT)
-static inline u32 __smc911x_reg_read(struct eth_device *dev, u32 offset)
-{
-	return *(volatile u32*)(dev->iobase + offset);
-}
-u32 smc911x_reg_read(struct eth_device *dev, u32 offset)
+u32 smc911x_reg_read(struct smc911x_priv *priv, u32 offset)
 	__attribute__((weak, alias("__smc911x_reg_read")));
 
-static inline void __smc911x_reg_write(struct eth_device *dev,
-					u32 offset, u32 val)
-{
-	*(volatile u32*)(dev->iobase + offset) = val;
-}
-void smc911x_reg_write(struct eth_device *dev, u32 offset, u32 val)
+void smc911x_reg_write(struct smc911x_priv *priv, u32 offset, u32 val)
 	__attribute__((weak, alias("__smc911x_reg_write")));
-#elif defined (CONFIG_SMC911X_16_BIT)
-static inline u32 smc911x_reg_read(struct eth_device *dev, u32 offset)
-{
-	volatile u16 *addr_16 = (u16 *)(dev->iobase + offset);
-	return ((*addr_16 & 0x0000ffff) | (*(addr_16 + 1) << 16));
-}
-static inline void smc911x_reg_write(struct eth_device *dev,
-					u32 offset, u32 val)
-{
-	*(volatile u16 *)(dev->iobase + offset) = (u16)val;
-	*(volatile u16 *)(dev->iobase + offset + 2) = (u16)(val >> 16);
-}
-#else
-#error "SMC911X: undefined bus width"
-#endif /* CONFIG_SMC911X_16_BIT */
 
 /* Below are the register offsets and bit definitions
  * of the Lan911x memory space
@@ -381,11 +371,6 @@ static inline void smc911x_reg_write(struct eth_device *dev,
 #define CHIP_9220	0x9220
 #define CHIP_9221	0x9221
 
-struct chip_id {
-	u16 id;
-	char *name;
-};
-
 static const struct chip_id chip_ids[] =  {
 	{ CHIP_89218, "LAN89218" },
 	{ CHIP_9115, "LAN9115" },
@@ -402,7 +387,7 @@ static const struct chip_id chip_ids[] =  {
 	{ 0, NULL },
 };
 
-static u32 smc911x_get_mac_csr(struct eth_device *dev, u8 reg)
+static u32 smc911x_get_mac_csr(struct smc911x_priv *dev, u8 reg)
 {
 	while (smc911x_reg_read(dev, MAC_CSR_CMD) & MAC_CSR_CMD_CSR_BUSY)
 		;
@@ -414,7 +399,7 @@ static u32 smc911x_get_mac_csr(struct eth_device *dev, u8 reg)
 	return smc911x_reg_read(dev, MAC_CSR_DATA);
 }
 
-static void smc911x_set_mac_csr(struct eth_device *dev, u8 reg, u32 data)
+static void smc911x_set_mac_csr(struct smc911x_priv *dev, u8 reg, u32 data)
 {
 	while (smc911x_reg_read(dev, MAC_CSR_CMD) & MAC_CSR_CMD_CSR_BUSY)
 		;
@@ -424,11 +409,11 @@ static void smc911x_set_mac_csr(struct eth_device *dev, u8 reg, u32 data)
 		;
 }
 
-static int smc911x_detect_chip(struct eth_device *dev)
+static int smc911x_detect_chip(struct smc911x_priv *priv)
 {
 	unsigned long val, i;
 
-	val = smc911x_reg_read(dev, BYTE_TEST);
+	val = smc911x_reg_read(priv, BYTE_TEST);
 	if (val == 0xffffffff) {
 		/* Special case -- no chip present */
 		return -1;
@@ -437,7 +422,7 @@ static int smc911x_detect_chip(struct eth_device *dev)
 		return -1;
 	}
 
-	val = smc911x_reg_read(dev, ID_REV) >> 16;
+	val = smc911x_reg_read(priv, ID_REV) >> 16;
 	for (i = 0; chip_ids[i].id != 0; i++) {
 		if (chip_ids[i].id == val) break;
 	}
@@ -446,12 +431,12 @@ static int smc911x_detect_chip(struct eth_device *dev)
 		return -1;
 	}
 
-	dev->priv = (void *)&chip_ids[i];
+	priv->chip_id = &chip_ids[i];
 
 	return 0;
 }
 
-static void smc911x_reset(struct eth_device *dev)
+static void smc911x_reset(struct smc911x_priv *dev)
 {
 	int timeout;
 

@@ -214,7 +214,7 @@ config RTL8169
 config SMC911X
 	bool "SMSC LAN911x and LAN921x controller driver"
 
-if SMC911X
+if SMC911X && !DM_ETH
 
 config SMC911X_BASE
 	hex "SMC911X Base Address"
@@ -364,5 +364,10 @@ config FEC2_PHY_NORXERR
 	help
 	  The PHY does not have a RXERR line (RMII only).
 	  (so program the FEC to ignore it).
+
+config SMC911X
+	bool "SMC911X Ethernet Support"
+	help
+	  TODO
 
 endif # NETDEVICES

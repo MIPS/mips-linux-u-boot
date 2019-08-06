@@ -6,6 +6,7 @@ dtb-$(CONFIG_TARGET_AP121) += ap121.dtb
 dtb-$(CONFIG_TARGET_AP143) += ap143.dtb
 dtb-$(CONFIG_TARGET_BOSTON) += img,boston.dtb
 dtb-$(CONFIG_TARGET_MALTA) += mti,malta.dtb
+dtb-$(CONFIG_TARGET_SEAD_3) += mti,sead-3.dtb
 dtb-$(CONFIG_TARGET_PIC32MZDASK) += pic32mzda_sk.dtb
 dtb-$(CONFIG_TARGET_XILFPGA) += nexys4ddr.dtb
 dtb-$(CONFIG_BOARD_COMTREND_AR5387UN) += comtrend,ar-5387un.dtb
