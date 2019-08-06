@@ -13,11 +13,13 @@
 #include <asm/regdef.h>
 
 LEAF(mips_cm_map)
+#if __mips_isa_rev < 6
 	/* Config3 must exist for a CM to be present */
 	mfc0		t0, CP0_CONFIG, 1
 	bgez		t0, 2f
 	mfc0		t0, CP0_CONFIG, 2
 	bgez		t0, 2f
+#endif
 
 	/* Check Config3.CMGCR to determine CM presence */
 	mfc0		t0, CP0_CONFIG, 3
