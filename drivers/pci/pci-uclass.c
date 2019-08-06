@@ -877,6 +877,9 @@ static int decode_regions(struct pci_controller *hose, ofnode parent_node,
 	size = gd->ram_size;
 #ifdef CONFIG_SYS_SDRAM_BASE
 	base = CONFIG_SYS_SDRAM_BASE;
+#ifdef CONFIG_MIPS
+	base = virt_to_phys((void *)base);
+#endif
 #endif
 	if (gd->pci_ram_top && gd->pci_ram_top < base + size)
 		size = gd->pci_ram_top - base;
