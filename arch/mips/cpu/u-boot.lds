@@ -60,7 +60,11 @@ SECTIONS
 
 	_end = .;
 
+#ifdef __nanomips__
+	.bss : {
+#else
 	.bss __rel_start (OVERLAY) : {
+#endif
 		__bss_start = .;
 		*(.sbss.*)
 		*(.bss.*)

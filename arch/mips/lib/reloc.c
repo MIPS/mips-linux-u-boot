@@ -28,6 +28,7 @@
  */
 
 #include <common.h>
+#include <asm/compiler.h>
 #include <asm/relocs.h>
 #include <asm/sections.h>
 
@@ -56,7 +57,7 @@ static unsigned long read_uint(uint8_t **buf)
 }
 
 /**
- * apply_reloc() - Apply a single relocation
+ * apply_reloc_mips() - Apply a single relocation to classic MIPS code
  * @type: the type of reloc (R_MIPS_*)
  * @addr: the address that the reloc should be applied to
  * @off: the relocation offset, ie. number of bytes we're moving U-Boot by
@@ -65,7 +66,7 @@ static unsigned long read_uint(uint8_t **buf)
  * intentionally simple, and does the bare minimum needed to fixup the
  * relocated U-Boot - in particular, it does not check for overflows.
  */
-static void apply_reloc(unsigned int type, void *addr, long off)
+static void apply_reloc_mips(unsigned int type, void *addr, long off)
 {
 	uint32_t u32;
 
@@ -95,6 +96,84 @@ static void apply_reloc(unsigned int type, void *addr, long off)
 }
 
 /**
+ * apply_reloc_nanomips() - Apply a single relocation to nanoMIPS code
+ * @type: the type of reloc (R_NANOMIPS_*)
+ * @addr: the address that the reloc should be applied to
+ * @off: the relocation offset, ie. number of bytes we're moving U-Boot by
+ *
+ * Apply a single relocation of type @type at @addr. This function is
+ * intentionally simple, and does the bare minimum needed to fixup the
+ * relocated U-Boot - in particular, it does not check for overflows.
+ */
+static void apply_reloc_nanomips(unsigned int type, void *addr, long off)
+{
+	uint16_t *pu16 = (uint16_t *)addr;
+	uint32_t u32, offset;
+
+	switch (type) {
+	/*
+	 * Relocations which share code between MIPS & nanoMIPS.
+	 */
+	case R_NANOMIPS_32:
+		*(uint32_t *)addr += off;
+		break;
+
+	case R_NANOMIPS_64:
+		*(uint64_t *)addr += off;
+		break;
+
+	case R_NANOMIPS_HI20:
+		/* Decode original offset from the instruction */
+		u32 = (pu16[0] << 16) | pu16[1];
+		offset = (u32 & BIT(0)) << 31;
+		offset |= (u32 & GENMASK(11, 2)) << (21 - 2);
+		offset |= u32 & GENMASK(20, 12);
+
+		/* Adjust */
+		offset += off;
+
+		/* Fixup the instruction */
+		u32 &= ~BIT(0);
+		u32 |= (offset >> 31) & BIT(0);
+		u32 &= ~GENMASK(11, 2);
+		u32 |= (offset >> (21 - 2)) & GENMASK(11, 2);
+		u32 &= ~GENMASK(20, 12);
+		u32 |= offset & GENMASK(20, 12);
+		pu16[0] = u32 >> 16;
+		pu16[1] = u32;
+		break;
+
+	case R_NANOMIPS_LO12:
+		u32 = pu16[0];
+		u32 = (u32 & GENMASK(15, 12)) |
+		      ((u32 + off) & GENMASK(11, 0));
+		pu16[0] = u32;
+		break;
+
+	default:
+		panic("Unhandled reloc type %u\n", type);
+	}
+}
+
+/**
+ * apply_reloc() - Apply a single relocation
+ * @type: the type of reloc (R_MIPS_* or R_NANOMIPS_*)
+ * @addr: the address that the reloc should be applied to
+ * @off: the relocation offset, ie. number of bytes we're moving U-Boot by
+ *
+ * Apply a single relocation of type @type at @addr, taking into account
+ * the ISA that U-Boot was built to target in order to detemine the valid
+ * set of relocations.
+ */
+static void apply_reloc(unsigned int type, void *addr, long off)
+{
+	if (IS_ENABLED(__nanomips__))
+		apply_reloc_nanomips(type, addr, off);
+	else
+		apply_reloc_mips(type, addr, off);
+}
+
+/**
  * relocate_code() - Relocate U-Boot, generally from flash to DDR
  * @start_addr_sp: new stack pointer
  * @new_gd: pointer to relocated global data
@@ -108,8 +187,8 @@ static void apply_reloc(unsigned int type, void *addr, long off)
 void relocate_code(ulong start_addr_sp, gd_t *new_gd, ulong relocaddr)
 {
 	unsigned long addr, length, bss_len;
+	unsigned int type, pc_shift;
 	uint8_t *buf, *bss_start;
-	unsigned int type;
 	long off;
 
 	/*
@@ -126,6 +205,11 @@ void relocate_code(ulong start_addr_sp, gd_t *new_gd, ulong relocaddr)
 	length = __image_copy_end - __text_start;
 	memcpy((void *)relocaddr, __text_start, length);
 
+	if (IS_ENABLED(__nanomips__))
+		pc_shift = 1;
+	else
+		pc_shift = 2;
+
 	/* Now apply relocations to the copy in RAM */
 	buf = __rel_start;
 	addr = relocaddr;
@@ -134,7 +218,7 @@ void relocate_code(ulong start_addr_sp, gd_t *new_gd, ulong relocaddr)
 		if (type == R_MIPS_NONE)
 			break;
 
-		addr += read_uint(&buf) << 2;
+		addr += read_uint(&buf) << pc_shift;
 		apply_reloc(type, (void *)addr, off);
 	}
 
@@ -148,10 +232,10 @@ void relocate_code(ulong start_addr_sp, gd_t *new_gd, ulong relocaddr)
 
 	/* Jump to the relocated U-Boot */
 	asm volatile(
-		       "move	$29, %0\n"
-		"	move	$4, %1\n"
-		"	move	$5, %2\n"
-		"	move	$31, $0\n"
+		       "move	$" MIPS_R_PFX "29, %0\n"
+		"	move	$" MIPS_R_PFX "4, %1\n"
+		"	move	$" MIPS_R_PFX "5, %2\n"
+		"	move	$" MIPS_R_PFX "31, $" MIPS_R_PFX "0\n"
 		"	jr	%3"
 		: /* no outputs */
 		: "r"(start_addr_sp),

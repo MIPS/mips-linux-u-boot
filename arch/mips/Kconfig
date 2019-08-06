@@ -211,6 +211,33 @@ config CPU_MIPS64_R6
 
 endchoice
 
+choice
+	prompt "ISA family selection"
+	default ISA_MIPS
+
+config ISA_MIPS
+	bool "Classic MIPS"
+	help
+	  Choose this option to build a U-Boot image which targets a classic
+	  fixed 32 bit instruction width MIPS ISA.
+
+config ISA_NANOMIPS
+	bool "nanoMIPS"
+	depends on CPU_MIPS32_R6
+	help
+	  Choose this option to build a U-Boot image which targets the
+	  nanoMIPS ISA, implemented by some CPUs using release 6 or later
+	  of the MIPS architecture.
+
+endchoice
+
+config ISA_NANOMIPS_S
+	bool "nanoMIPS Subset"
+	depends on ISA_NANOMIPS
+	help
+	  Enable this to target a subset of the nanoMIPS ISA used by low power
+	  CPU cores.
+
 menu "General setup"
 
 config ROM_EXCEPTION_VECTORS

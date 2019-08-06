@@ -20,7 +20,9 @@
 #define zero	$0	/* wired zero */
 #define AT	$1	/* assembler temp  - uppercase because of ".set at" */
 #define v0	$2	/* return value */
+#define va0	$2
 #define v1	$3
+#define va1	$3
 #define a0	$4	/* argument registers */
 #define a1	$5
 #define a2	$6
@@ -63,7 +65,9 @@
 #define zero	$0	/* wired zero */
 #define AT	$at	/* assembler temp - uppercase because of ".set at" */
 #define v0	$2	/* return value - caller saved */
+#define va0	$2
 #define v1	$3
+#define va1	$3
 #define a0	$4	/* argument registers */
 #define a1	$5
 #define a2	$6
@@ -100,5 +104,50 @@
 #define ra	$31	/* return address */
 
 #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 || _MIPS_SIM == _MIPS_SIM_NABI32 */
+
+#if _MIPS_SIM == _MIPS_SIM_PABI32
+
+#define zero	$r0	/* wired zero */
+#define AT	$r1	/* assembler temp - uppercase because of ".set at" */
+#define t4	$r2
+#define t5	$r3
+#define a0	$r4	/* argument registers */
+#define va0	$r4
+#define a1	$r5
+#define va1	$r4
+#define a2	$r6
+#define a3	$r7
+#define a4	$r8	/* arg reg 64 bit; caller saved in 32 bit */
+#define ta0	$r8
+#define a5	$r9
+#define ta1	$r9
+#define a6	$r10
+#define ta2	$r10
+#define a7	$r11
+#define ta3	$r11
+#define t0	$r12	/* caller saved */
+#define t1	$r13
+#define t2	$r14
+#define t3	$r15
+#define s0	$r16	/* callee saved */
+#define s1	$r17
+#define s2	$r18
+#define s3	$r19
+#define s4	$r20
+#define s5	$r21
+#define s6	$r22
+#define s7	$r23
+#define t8	$r24	/* caller saved */
+#define t9	$r25	/* callee address for PIC/temp */
+#define jp	$r25	/* PIC jump register */
+#define k0	$r26	/* kernel temporary */
+#define k1	$r27
+#define gp	$r28	/* global pointer - caller saved for PIC */
+#define sp	$r29	/* stack pointer */
+#define fp	$r30	/* frame pointer */
+#define s8	$r30	/* callee saved */
+#define ra	$ra	/* return address */
+
+#endif /* _MIPS_SIM == _MIPS_SIM_PABI32 */
 
 #endif /* _ASM_REGDEF_H */

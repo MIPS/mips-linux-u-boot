@@ -65,6 +65,7 @@ gd_t *global_data;
 	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "ip");
 #endif
 #elif defined(CONFIG_MIPS)
+#include <asm/compiler.h>
 #ifdef CONFIG_CPU_MIPS64
 /*
  * k0 ($26) holds the pointer to the global_data; t9 ($25) is a call-
@@ -73,13 +74,13 @@ gd_t *global_data;
  * it; however, GCC/mips generates an additional `nop' after each asm
  * statement
  */
-#define EXPORT_FUNC(f, a, x, ...) \
-	asm volatile (			\
-"	.globl " #x "\n"		\
-#x ":\n"				\
-"	ld	$25, %0($26)\n"		\
-"	ld	$25, %1($25)\n"		\
-"	jr	$25\n"			\
+#define EXPORT_FUNC(f, a, x, ...)				\
+	asm volatile (						\
+"	.globl " #x "\n"					\
+#x ":\n"							\
+"	ld	$" MIPS_R_PFX "25, %0($" MIPS_R_PFX "26)\n"	\
+"	ld	$" MIPS_R_PFX "25, %1($" MIPS_R_PFX "25)\n"	\
+"	jr	$" MIPS_R_PFX "25\n"				\
         : : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t9");
 #else
 /*
@@ -89,13 +90,13 @@ gd_t *global_data;
  * it; however, GCC/mips generates an additional `nop' after each asm
  * statement
  */
-#define EXPORT_FUNC(f, a, x, ...) \
-	asm volatile (			\
-"	.globl " #x "\n"		\
-#x ":\n"				\
-"	lw	$25, %0($26)\n"		\
-"	lw	$25, %1($25)\n"		\
-"	jr	$25\n"			\
+#define EXPORT_FUNC(f, a, x, ...)				\
+	asm volatile (						\
+"	.globl " #x "\n"					\
+#x ":\n"							\
+"	lw	$" MIPS_R_PFX "25, %0($" MIPS_R_PFX "26)\n"	\
+"	lw	$" MIPS_R_PFX "25, %1($" MIPS_R_PFX "25)\n"	\
+"	jr	$" MIPS_R_PFX "25\n"				\
 	: : "i"(offsetof(gd_t, jt)), "i"(FO(x)) : "t9");
 #endif
 #elif defined(CONFIG_NIOS2)

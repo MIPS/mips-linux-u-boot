@@ -435,9 +435,9 @@ LEAF(dcache_status)
 	mfc0	t0, CP0_CONFIG
 	li	t1, CONF_CM_UNCACHED
 	andi	t0, t0, CONF_CM_CMASK
-	move	v0, zero
+	move	va0, zero
 	beq	t0, t1, 2f
-	li	v0, 1
+	li	va0, 1
 2:	jr	ra
 	END(dcache_status)
 

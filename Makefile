@@ -336,7 +336,11 @@ AS		= $(CROSS_COMPILE)as
 ifneq ($(shell $(CROSS_COMPILE)ld.bfd -v 2> /dev/null),)
 LD		= $(CROSS_COMPILE)ld.bfd
 else
+ifneq ($(shell $(CROSS_COMPILE)ld.gold -v 2> /dev/null),)
+LD		= $(CROSS_COMPILE)ld.gold
+else
 LD		= $(CROSS_COMPILE)ld
+endif
 endif
 CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E

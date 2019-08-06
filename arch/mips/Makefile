@@ -24,6 +24,13 @@ libs-y += $(machdirs)
 
 PLATFORM_CPPFLAGS += $(patsubst %,-I$(srctree)/%include,$(machdirs))
 
+ifeq ($(CONFIG_ISA_NANOMIPS),y)
+
+arch-y				:= -march=32r6
+arch-$(CONFIG_ISA_NANOMIPS_S)	:= -march=32r6s
+
+else
+
 # Optimize for MIPS architectures
 arch-$(CONFIG_CPU_MIPS32_R1) += -march=mips32 -Wa,-mips32
 arch-$(CONFIG_CPU_MIPS32_R2) += -march=mips32r2 -Wa,-mips32r2
@@ -31,6 +38,8 @@ arch-$(CONFIG_CPU_MIPS32_R6) += -march=mips32r6 -Wa,-mips32r6
 arch-$(CONFIG_CPU_MIPS64_R1) += -march=mips64 -Wa,-mips64
 arch-$(CONFIG_CPU_MIPS64_R2) += -march=mips64r2 -Wa,-mips64r2
 arch-$(CONFIG_CPU_MIPS64_R6) += -march=mips64r6 -Wa,-mips64r6
+
+endif
 
 # Allow extra optimization for specific CPUs/SoCs
 tune-$(CONFIG_MIPS_TUNE_4KC) += -mtune=4kc
