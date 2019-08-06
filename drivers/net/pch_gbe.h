@@ -293,6 +293,7 @@ struct pch_gbe_priv {
 	struct udevice *dev;
 	int rx_idx;
 	int tx_idx;
+	struct gpio_desc gpio_phy_reset;
 };
 
 #endif /* _PCH_GBE_H_ */
