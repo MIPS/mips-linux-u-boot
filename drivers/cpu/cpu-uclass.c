@@ -82,3 +82,25 @@ UCLASS_DRIVER(cpu) = {
 	.flags		= DM_UC_FLAG_SEQ_ALIAS,
 	.init		= uclass_cpu_init,
 };
+
+int __weak print_cpuinfo(void)
+{
+	struct udevice *cpu_dev;
+	char buf[100];
+	int err;
+
+	err = uclass_first_device_err(UCLASS_CPU, &cpu_dev);
+	if (err) {
+		printf("CPU:   Unknown (No Driver, Error %d)\n", err);
+		return 0;
+	}
+
+	err = cpu_get_desc(cpu_dev, buf, sizeof(buf));
+	if (err) {
+		printf("CPU:   Unknown (Driver Error %d)\n", err);
+		return 0;
+	}
+
+	printf("CPU:   %s\n", buf);
+	return 0;
+}
