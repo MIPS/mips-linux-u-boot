@@ -1536,4 +1536,6 @@ config CMD_UBIFS
 	help
 	  UBIFS is a file system for flash devices which works on top of UBI.
 
+source "arch/mips/cmd/Kconfig"
+
 endmenu
