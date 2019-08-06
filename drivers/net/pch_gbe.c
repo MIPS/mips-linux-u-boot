@@ -122,7 +122,7 @@ static void pch_gbe_rx_descs_init(struct udevice *dev)
 		rx_desc[i].buffer_addr = dm_pci_virt_to_mem(priv->dev,
 			priv->rx_buff[i]);
 
-	flush_dcache_range((ulong)rx_desc, (ulong)&rx_desc[PCH_GBE_DESC_NUM]);
+	dev_dma_cache_writeback(dev, (ulong)rx_desc, (ulong)&rx_desc[PCH_GBE_DESC_NUM]);
 
 	writel(dm_pci_virt_to_mem(priv->dev, rx_desc),
 	       &mac_regs->rx_dsc_base);
@@ -141,7 +141,7 @@ static void pch_gbe_tx_descs_init(struct udevice *dev)
 
 	memset(tx_desc, 0, sizeof(struct pch_gbe_tx_desc) * PCH_GBE_DESC_NUM);
 
-	flush_dcache_range((ulong)tx_desc, (ulong)&tx_desc[PCH_GBE_DESC_NUM]);
+	dev_dma_cache_writeback(dev, (ulong)tx_desc, (ulong)&tx_desc[PCH_GBE_DESC_NUM]);
 
 	writel(dm_pci_virt_to_mem(priv->dev, tx_desc),
 	       &mac_regs->tx_dsc_base);
@@ -249,7 +249,7 @@ static int pch_gbe_send(struct udevice *dev, void *packet, int length)
 	struct pch_gbe_tx_desc *tx_head, *tx_desc;
 	u16 frame_ctrl = 0;
 
-	flush_dcache_range((ulong)packet, (ulong)packet + length);
+	dev_dma_cache_writeback(dev, (ulong)packet, (ulong)packet + length);
 
 	tx_head = &priv->tx_desc[0];
 	tx_desc = &priv->tx_desc[priv->tx_idx];
@@ -264,7 +264,7 @@ static int pch_gbe_send(struct udevice *dev, void *packet, int length)
 	tx_desc->dma_status = 0;
 	tx_desc->gbec_status = 0;
 
-	flush_dcache_range((ulong)tx_desc, (ulong)&tx_desc[1]);
+	dev_dma_cache_writeback(dev, (ulong)tx_desc, (ulong)&tx_desc[1]);
 
 	/* Test the wrap-around condition */
 	if (++priv->tx_idx >= PCH_GBE_DESC_NUM)
@@ -295,11 +295,11 @@ static int pch_gbe_recv(struct udevice *dev, int flags, uchar **packetp)
 		return -EAGAIN;
 
 	/* Invalidate the descriptor */
-	invalidate_dcache_range((ulong)rx_desc, (ulong)&rx_desc[1]);
+	dev_dma_cache_invalidate(dev, (ulong)rx_desc, (ulong)&rx_desc[1]);
 
 	length = rx_desc->rx_words_eob - 3 - ETH_FCS_LEN;
 	buffer = dm_pci_mem_to_virt(priv->dev, rx_desc->buffer_addr, length, 0);
-	invalidate_dcache_range((ulong)buffer, (ulong)buffer + length);
+	dev_dma_cache_invalidate(dev, (ulong)buffer, (ulong)buffer + length);
 	*packetp = (uchar *)buffer;
 
 	return length;
