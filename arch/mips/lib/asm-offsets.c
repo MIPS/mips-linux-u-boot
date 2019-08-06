@@ -12,6 +12,7 @@
  */
 
 #include <asm/ptrace.h>
+#include <asm/setjmp.h>
 #include <linux/stddef.h>
 #include <linux/kbuild.h>
 
@@ -57,5 +58,22 @@ void output_ptreg_defines(void)
 	OFFSET(PT_STATUS, pt_regs, cp0_status);
 	OFFSET(PT_CAUSE, pt_regs, cp0_cause);
 	DEFINE(PT_SIZE, sizeof(struct pt_regs));
+	BLANK();
+}
+
+void output_jmpbuf_defines(void)
+{
+	DEFINE(JMPBUF_S0, offsetof(struct jmp_buf, s0));
+	DEFINE(JMPBUF_S1, offsetof(struct jmp_buf, s1));
+	DEFINE(JMPBUF_S2, offsetof(struct jmp_buf, s2));
+	DEFINE(JMPBUF_S3, offsetof(struct jmp_buf, s3));
+	DEFINE(JMPBUF_S4, offsetof(struct jmp_buf, s4));
+	DEFINE(JMPBUF_S5, offsetof(struct jmp_buf, s5));
+	DEFINE(JMPBUF_S6, offsetof(struct jmp_buf, s6));
+	DEFINE(JMPBUF_S7, offsetof(struct jmp_buf, s7));
+	DEFINE(JMPBUF_GP, offsetof(struct jmp_buf, gp));
+	DEFINE(JMPBUF_SP, offsetof(struct jmp_buf, sp));
+	DEFINE(JMPBUF_FP, offsetof(struct jmp_buf, fp));
+	DEFINE(JMPBUF_RA, offsetof(struct jmp_buf, ra));
 	BLANK();
 }

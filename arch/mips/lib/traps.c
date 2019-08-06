@@ -12,11 +12,15 @@
  */
 
 #include <common.h>
+#include <cli.h>
+#include <asm/compiler.h>
 #include <asm/mipsregs.h>
 #include <asm/addrspace.h>
 #include <asm/system.h>
+#include <asm/uhi.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+unsigned long gd_addr;
 
 static void show_regs(const struct pt_regs *regs)
 {
@@ -43,8 +47,10 @@ static void show_regs(const struct pt_regs *regs)
 			puts("\n");
 	}
 
-	printf("Hi    : %0*lx\n", field, regs->hi);
-	printf("Lo    : %0*lx\n", field, regs->lo);
+	if (__mips_isa_rev < 6) {
+		printf("Hi    : %0*lx\n", field, regs->hi);
+		printf("Lo    : %0*lx\n", field, regs->lo);
+	}
 
 	/*
 	 * Saved cp0 registers
@@ -65,10 +71,31 @@ static void show_regs(const struct pt_regs *regs)
 	printf("PrId  : %08x\n", read_c0_prid());
 }
 
-void do_reserved(const struct pt_regs *regs)
+void do_reserved(struct pt_regs *regs)
 {
+	unsigned int exc_code;
+	int err;
+
+	change_c0_status(ST0_NMI | ST0_BEV | ST0_ERL | ST0_EXL, 0);
+	regs->cp0_status &= ~(ST0_NMI | ST0_BEV | ST0_ERL | ST0_EXL);
+	execution_hazard_barrier();
+
+	exc_code = regs->cp0_cause & CAUSEF_EXCCODE;
+	exc_code >>= CAUSEB_EXCCODE;
+
+	/* Check for UHI syscall */
+	if (exc_code == 8 && regs->regs[2] == MIPS_UHI_SYSCALL) {
+		err = mips_uhi_handle(regs);
+		if (!err)
+			return;
+	}
+
 	puts("\nOoops:\n");
 	show_regs(regs);
+
+	if (CONFIG_IS_ENABLED(RETURN_TO_CLI_AFTER_EXCEPTION))
+		cli_longjmp();
+
 	hang();
 }
 
@@ -96,6 +123,8 @@ static void set_handler(unsigned long offset, void *addr, unsigned long size)
 void trap_init(ulong reloc_addr)
 {
 	unsigned long ebase = gd->irq_sp;
+
+	asm volatile("move %0, $" MIPS_R_PFX "26" : "=r"(gd_addr));
 
 	set_handler(0x180, &except_vec3_generic, 0x80);
 	set_handler(0x280, &except_vec_ejtag_debug, 0x80);

@@ -63,9 +63,8 @@
 	.macro	SAVE_SOME
 	.set	push
 	.set	noat
-	PTR_SUBU k1, sp, PT_SIZE
-	LONG_S	sp, PT_R29(k1)
-	move	sp, k1
+	LONG_S	sp, (PT_R29 - PT_SIZE)(sp)
+	PTR_SUBU sp, sp, PT_SIZE
 
 	LONG_S	a0, PT_R4(sp)
 	LONG_S	$0, PT_R0(sp)
@@ -85,8 +84,16 @@
 #endif
 	LONG_S	a0, PT_EPC(sp)
 	LONG_S	$25, PT_R25(sp)
-	LONG_S	$28, PT_R28(sp)
 	LONG_S	$31, PT_R31(sp)
+	.set	pop
+	.endm
+
+	.macro	SAVE_KERN
+	.set	push
+	.set	noat
+	LONG_S	$26, (PT_R26 - PT_SIZE)(sp)
+	LONG_S	$27, (PT_R27 - PT_SIZE)(sp)
+	LONG_S	$28, (PT_R28 - PT_SIZE)(sp)
 	.set	pop
 	.endm
 
@@ -147,7 +154,6 @@
 	LONG_L	a1, PT_EPC(sp)
 	MTC0	a1, CP0_EPC
 	LONG_L	$31, PT_R31(sp)
-	LONG_L	$28, PT_R28(sp)
 	LONG_L	$25, PT_R25(sp)
 #ifdef CONFIG_64BIT
 	LONG_L	$8, PT_R8(sp)
@@ -162,16 +168,27 @@
 	.set	pop
 	.endm
 
+	.macro	RESTORE_KERN
+	.set	push
+	.set	noat
+	LONG_L	$26, PT_R26(sp)
+	LONG_L	$27, PT_R27(sp)
+	LONG_L	$28, PT_R28(sp)
+	.set	pop
+	.endm
+
 	.macro	RESTORE_SP
 	LONG_L	sp, PT_R29(sp)
 	.endm
 
 NESTED(except_vec3_generic, 0, sp)
+	SAVE_KERN
 	PTR_LA	k1, handle_reserved
 	jr	k1
 	END(except_vec3_generic)
 
 NESTED(except_vec_ejtag_debug, 0, sp)
+	MTC0	k1, CP0_DESAVE
 	PTR_LA	k1, handle_ejtag_debug
 	jr	k1
 	END(except_vec_ejtag_debug)
@@ -182,16 +199,26 @@ NESTED(handle_reserved, PT_SIZE, sp)
 	SAVE_TEMP
 	SAVE_STATIC
 
+	/* restore k0 */
+	PTR_LA	k0, gd_addr
+	PTR_L	k0, 0(k0)
+
 	PTR_LA	t9, do_reserved
 	move	a0, sp
-	jr	t9
+	jalr	t9
+
+	RESTORE_TEMP
+	RESTORE_STATIC
+	RESTORE_AT
+	RESTORE_SOME
+	RESTORE_KERN
+	RESTORE_SP
+	eret
 	END(handle_reserved)
 
 NESTED(handle_ejtag_debug, PT_SIZE, sp)
 	.set	push
 	.set	noat
-	MTC0	k1, CP0_DESAVE
-
 	/* Check for SDBBP */
 	MFC0	k1, CP0_DEBUG
 	sll	k1, k1, 30

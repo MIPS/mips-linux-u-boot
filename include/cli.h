@@ -142,6 +142,13 @@ static inline void cli_secure_boot_cmd(const char *cmd)
 #endif /* CONFIG_OF_CONTROL */
 
 /**
+ Store the return value from a UHI program when it exits
+
+ @value:	Value returned on program exit
+ */
+void set_return_code(unsigned int);
+
+/**
  * Go into the command loop
  *
  * This will return if we get a timeout waiting for a command, but only for
@@ -153,5 +160,13 @@ void cli_loop(void);
 void cli_init(void);
 
 #define endtick(seconds) (get_ticks() + (uint64_t)(seconds) * get_tbclk())
+
+/**
+ * cli_longjmp() - Return to the CLI loop via longjmp()
+ *
+ * Call this to return to the CLI loop. cli_loop() must previously have been
+ * called & still be running.
+ */
+void __noreturn cli_longjmp(void);
 
 #endif

@@ -386,6 +386,11 @@ static void __syntax(char *file, int line) {
 #define syntax() __syntax(__FILE__, __LINE__)
 #endif
 
+void set_return_code(unsigned int value)
+{
+	last_return_code = value;
+}
+
 #ifdef __U_BOOT__
 static void *xmalloc(size_t size);
 static void *xrealloc(void *ptr, size_t size);

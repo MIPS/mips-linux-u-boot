@@ -448,6 +448,12 @@ config MIPS_CM
 	  wish U-Boot to configure it or make use of it to retrieve system
 	  information such as cache configuration.
 
+config MIPS_UHI
+	bool "MIPS Unified Hosting Interface (UHI) Support"
+	help
+	  Include support for the MIPS Unified Hosting Interface (UHI),
+	  allowing the user to run programs that use UHI atop U-Boot.
+
 endif
 
 endmenu
